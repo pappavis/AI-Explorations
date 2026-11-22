@@ -1,0 +1,13 @@
+{
+  "model": "SMK-37 Pro / Elite",
+  "bootloader": "stock (M-VAVE)",
+  "firmware": "Felucca",
+  "app": "OK",
+  "chip key": "0x980F",
+  "flash": "0x856014",
+  "unit id": "4150354433333615",
+  "loader": "M-Flasher 1.2, CPU at 96 MHz",
+  "sha256": "2b01d2e8bf84a43992ae6636cf7c540b1f66ca0914700a53b2d732374f980cc4",
+  "saved": "20261101-225139",
+  "tool": "m-flasher 0.7.0"
+}

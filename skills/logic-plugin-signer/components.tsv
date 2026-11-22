@@ -1,0 +1,7 @@
+naam	type	volledig_pad	officiele_bron	sha256
+Lucent	CLAP	ONBEKEND	ONBEKEND	ONBEKEND
+Lucent-Relay	CLAP	ONBEKEND	ONBEKEND	ONBEKEND
+Meridian	CLAP	ONBEKEND	ONBEKEND	ONBEKEND
+GridlineTest	VST3	/Volumes/data1/AI_Gerelateerd/github/muziek_gerelateerd/Gridline/build/test-vst3/GridlineTest.vst3	Lokaal gebouwd (Gridline repo)	c89ded2dfd00251a1f4e8df63d08d1c8b390f74f87228c375868c47dfa758b6d
+dm-Reverb	VST3	/Library/Audio/Plug-Ins/VST3/dm-Reverb.vst3	Lokaal / Onbekend	e2587ea3de9bbbabee4ebb4c41073c44e577eb6cfa9365254bb9e493ab25dfca
+ClangCymbal	VST3	/Library/Audio/Plug-Ins/VST/ClangCymbal.vst3	Lokaal / Onbekend	04dc5c7121ccce9ee84c26434a99de5611776feb33be31f4fb251f91a8855fb4

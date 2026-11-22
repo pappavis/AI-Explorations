@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "release": "1.6.0",
+  "chat_id": "A61E4C92",
+  "mode": "status",
+  "started_at": "2026-11-18T23:01:10.215779+00:00",
+  "status": "SUCCESS",
+  "events": [
+    {
+      "time": "2026-11-18T23:01:10.216257+00:00",
+      "step": "start",
+      "message": "Firmware manager gestart",
+      "mode": "status"
+    },
+    {
+      "time": "2026-11-18T23:01:10.216561+00:00",
+      "step": "paths",
+      "message": "Doelmap bepaald",
+      "target": "/Users/michiele/Library/Application Support/VIBE FM/Firmware"
+    },
+    {
+      "time": "2026-11-18T23:01:10.511555+00:00",
+      "step": "discovery_fm",
+      "message": "FM-1 catalogus gevonden",
+      "count": 166
+    },
+    {
+      "time": "2026-11-18T23:01:10.755064+00:00",
+      "step": "discovery_smk",
+      "message": "SMK-37 catalogus gevonden",
+      "count": 28
+    },
+    {
+      "time": "2026-11-18T23:01:10.756035+00:00",
+      "step": "discovery",
+      "message": "Inventarisatie voltooid",
+      "total": 194
+    },
+    {
+      "time": "2026-11-18T23:01:10.760293+00:00",
+      "step": "selection",
+      "message": "Firmwareselectie berekend",
+      "selected": 0,
+      "fm_total": 166,
+      "mode": "status"
+    },
+    {
+      "time": "2026-11-18T23:01:10.760682+00:00",
+      "step": "paths",
+      "message": "Firmwarebibliotheek",
+      "target": "/Users/michiele/Library/Application Support/VIBE FM/Firmware"
+    },
+    {
+      "time": "2026-11-18T23:01:10.762410+00:00",
+      "step": "report",
+      "message": "Statusrapport opgebouwd",
+      "changes": 194
+    }
+  ],
+  "errors": [],
+  "finished_at": "2026-11-18T23:01:10.762698+00:00"
+}

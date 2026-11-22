@@ -1,0 +1,7 @@
+{
+  "destination": null,
+  "sources": [
+    {"id": "blackwinny", "type": "github", "owner": "visualizersdotnl", "repo": "Yamaha-DX7-patch-library", "enabled": true},
+    {"id": "dexed", "type": "github", "owner": "asb2m10", "repo": "dexed", "enabled": true}
+  ]
+}
