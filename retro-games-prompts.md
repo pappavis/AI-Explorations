@@ -14,9 +14,12 @@ Requirements:
 Afrikaans content with multi language support for Russian and Dutch and other langauges.
  - Everything in one index.html, no external files or network.
  - It may include external support libraries.
+ - Use and embed open source sounds to enhance player audio experience
  - Make it fast and polished.
+ - When the game starts, or a game ends show an 'attract demo' demonstrating the gameplay for about 15 seconds, which a user can interrupt to start a game.
+Before outputting code the code be revised by an external revier, then apply the code improvements advices, then code it, then play it yourself and fix all bugs.
+Deliver a complete tested and approved 1-file version of the game.
 
-Before outputting code play it yourself and fix all bugs.
 ```
 
 
@@ -74,6 +77,107 @@ Test het spel grondig en verhelp eventuele fouten voordat je de code presenteert
 ```
 
 <a href="https://gemini.google.com/share/9e2b26b4f5c3?social_preview=true&skid=5926ca86-2a72-4b72-ac45-b28873ec10a4">Waterverfstyl Mogol Golfklub Ellisras</a>
+
+## Vegvliegtuig spel
+```
+Build a complete single-file HTML5 canvas game in index.html called SKY ACE.
+Requirements:
+ - arcade aerial combat viewed from above;
+ - WASD flies the fighter; mouse aims;
+ - click fires machine guns; Space launches limited missiles;
+ - authentic arcade combat sounds
+ - enemy fighters dogfight the player; ground anti-air guns; explosions, smoke trails, screen shake, and clouds; score multiplier for consecutive kills; three lives; increasingly difficult waves;
+ - best score saved in localStorage. Afrikaans, then Russian and Dutch language support.
+ - you may include embed external open source libraries in the code
+ - include comments in the html5 code to an AI so it can rebuild or fix any errors and include comments as https://github.com/pappavis/AI-Explorations/ as the home repo.
+ -  Everything in one index.html, no external files or network. Make it fast and polished. 21-nov-2026.
+ - When the game starts, or a game ends show an 'attract demo' demonstrating the gameplay for about 15 seconds, which a user can interrupt to start a game.
+
+Before outputting code the code be revised by an external revier, then apply the code improvements advices, then code it, then play it yourself and fix all bugs.
+Deliver a complete tested and approved 1-file version of the game.
+Before outputting code play it yourself and fix all bugs.
+
+```
+
+
+# 🎮 KODEKLOPPER AI — RETRO GAME FACTORY
+
+```
+AI genegenreerde spelltejes, kant en klaar, in de browser.
+Hi ChatGPT. Ek het 'n speletjie <a href="https://github.com/pappavis/commando_ai" target="_blank">Commando</a> nagebouwt, miskien weet jy dit, eerder in hierdie chat, deur alleen, dis met jou hulp, dankie wel.
+Maar deur 'n spesifikasie te skryf en te vertel hoe die spel is, het jy daarmee kode gegenereer en ja, was daar voldoende gewees, gewoon demonstrasie, dit werk.
+Maar, nu wil ek een stap vorder gaan en dat jy op internet gaan soek na prompts wat 'n spel, miskien 'n retro spel, gaan genereer, alles in 'n kant-en-klaar oplossing genereer, geen... dit moet 'n web-based spel wees, hy mag eksterne libraries gebruik, maar jy as gebruiker niks hoef te installeer nie.
+Dit is gewoon soos 'n website besoeking.
+Before outputting code the code be revised by an external revier, then apply the code improvements advices, then code it, then play it yourself and fix all bugs.
+Voor jy verder gaan, laat my effens reviewen wat jy hiervan verstaan.
+En jy mag uiteraard soek na skills en vaardighede wat jou hierby kan help, en laat my ook weet watter vaardighede jy gaan gebruik, en vat hierdie gesprek saam in 'n mindmap formaat sodat ek dit ook kan review, en vra my daarna wat ek verder wil doen. Byvoorbeeld bied my aan om enkele speletjies te bouen, of die prompts vir enkele speletjies, en dan moet dit uitgebreide spele wees en nie halfgebakken nie, want gisteren het ek Google Gemini 'n speletjie laat maak, 'n leaderboard golf, van Commodore 64, en hy het dit uitgebreid gedoen, supergoed, en jy was halfgebakken gewees. ser.
+```
+
+
+## retro spel fabriek
+
+```
+                    🎮 AI RETRO GAME FACTORY
+                              │
+          ┌───────────────────┴───────────────────┐
+          │                                       │
+     1. NAVORSING                           2. SPELKEUSE
+          │                                       │
+     ├─ Internetprompts                     ├─ Commodore 64
+     ├─ GitHub-projekte                     ├─ Atari
+     ├─ AI Arcade                           ├─ Amiga
+     ├─ Speelbare voorbeelde                ├─ DOS
+     ├─ Gameplay-video's                    └─ Oorspronklike spel
+     └─ Promptvergelyking
+          │                                       │
+          └───────────────────┬───────────────────┘
+                              │
+                     3. MASTER PROMPT
+                              │
+                     ├─ Spelspesifikasie
+                     ├─ Spelreëls
+                     ├─ Grafika en animasie
+                     ├─ Klank en musiek
+                     ├─ Vyand-AI
+                     ├─ Vlakontwerp
+                     ├─ Punte en lewens
+                     ├─ Moeilikheidsvlakke
+                     ├─ Taalondersteuning
+                     └─ Aanvaardingskriteria
+                              │
+                     4. AI DEVELOPMENT
+                              │
+                     ├─ Planner
+                     ├─ Architect
+                     ├─ Developer
+                     ├─ Tester
+                     └─ Reviewer
+                              │
+                     5. QUALITY GATES
+                              │
+                     ├─ RED: falende toetse
+                     ├─ GREEN: implementering
+                     ├─ Browsertoetse
+                     ├─ Gameplaytoetse
+                     ├─ Foutregstelling
+                     └─ Finale speltoets
+                              │
+                     6. AFLEWERING
+                              │
+                     ├─ index.html
+                     ├─ Speel onmiddellik
+                     ├─ Geen installasie
+                     ├─ High scores
+                     ├─ Afrikaans/NL/RU
+                     ├─ Weergawe + ChatID
+                     └─ Volledige bronkode
+```
+
+
+# Externe skakels
+1. <a https://aiarcade.games/?utm_source=chatgpt.com>aiarcade.games</a>
+2. <a href="http://phaser.io">Phaser</a> open source spel biblioteek
+
 
 ---
 
