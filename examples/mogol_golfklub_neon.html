@@ -1,0 +1,2817 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mogol Golfklub Neon — Arkade Gholf</title>
+  <style>
+    /* =========================================================================
+       MOGOL GOLFKLUB NEON — STILERING (100% SELFSTANDIG, GEEN EKSTERNE LÊERS)
+       ========================================================================= */
+    :root {
+      --bg-void: #040814;
+      --panel-bg: rgba(7, 13, 30, 0.88);
+      --neon-cyan: #00f3ff;
+      --neon-lime: #39ff14;
+      --neon-magenta: #ff00aa;
+      --neon-amber: #ffbe0b;
+      --neon-red: #ff2a55;
+      --text-main: #f1f5f9;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-void);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      background: var(--bg-void);
+      cursor: crosshair;
+    }
+
+    /* =========================================================================
+       HUD OORLEGSEL
+       ========================================================================= */
+    #hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 0.85rem 1.05rem;
+    }
+
+    .hud-top, .hud-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.7rem;
+      width: 100%;
+    }
+
+    .hud-bottom {
+      align-items: flex-end;
+    }
+
+    .hud-card {
+      background: var(--panel-bg);
+      border: 1px solid rgba(0, 243, 255, 0.45);
+      border-radius: 12px;
+      padding: 0.55rem 0.9rem;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.14);
+      display: flex;
+      align-items: center;
+      gap: 1.05rem;
+      pointer-events: auto;
+    }
+
+    .hud-stat {
+      display: flex;
+      flex-direction: column;
+      min-width: 54px;
+    }
+
+    .hud-lbl {
+      font-size: 0.64rem;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .hud-val {
+      font-size: 1.12rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #f8fafc;
+    }
+
+    .hud-val.cyan { color: var(--neon-cyan); text-shadow: 0 0 8px rgba(0, 243, 255, 0.45); }
+    .hud-val.lime { color: var(--neon-lime); text-shadow: 0 0 8px rgba(57, 255, 20, 0.45); }
+    .hud-val.amber { color: var(--neon-amber); text-shadow: 0 0 8px rgba(255, 190, 11, 0.45); }
+    .hud-val.magenta { color: #ff66cc; text-shadow: 0 0 8px rgba(255, 0, 170, 0.45); }
+
+    /* Windkompas in HUD */
+    .wind-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .wind-compass {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 243, 255, 0.65);
+      background: rgba(4, 8, 22, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .wind-arrow {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 14px solid var(--neon-amber);
+      transform-origin: center 9px;
+      filter: drop-shadow(0 0 5px rgba(255, 190, 11, 0.8));
+    }
+
+    /* Stok- en Kragpaneel */
+    .club-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      min-width: 260px;
+    }
+
+    .club-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .club-btn {
+      background: rgba(10, 20, 44, 0.92);
+      border: 1px solid rgba(0, 243, 255, 0.55);
+      color: var(--neon-cyan);
+      font-weight: 900;
+      font-size: 0.9rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .club-btn:hover {
+      border-color: var(--neon-magenta);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(255, 0, 170, 0.45);
+    }
+
+    .club-btn:active {
+      transform: scale(0.94);
+    }
+
+    .club-info {
+      flex: 1;
+      text-align: center;
+    }
+
+    .club-name {
+      font-size: 0.98rem;
+      font-weight: 900;
+      color: var(--neon-lime);
+      letter-spacing: 0.8px;
+    }
+
+    .club-meta {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-weight: 700;
+    }
+
+    /* Kragmeter */
+    .power-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .power-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .power-bar-bg {
+      width: 100%;
+      height: 14px;
+      background: rgba(3, 6, 18, 0.95);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .power-sweetspot {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 84%;
+      width: 10%;
+      background: rgba(57, 255, 20, 0.25);
+      border-left: 1px dashed rgba(57, 255, 20, 0.9);
+      border-right: 1px dashed rgba(57, 255, 20, 0.9);
+      pointer-events: none;
+    }
+
+    .power-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #00f3ff 0%, #39ff14 68%, #ffbe0b 86%, #ff2a55 100%);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.7);
+      transition: width 0.03s linear;
+    }
+
+    .icon-btn {
+      background: rgba(8, 16, 36, 0.92);
+      border: 1px solid rgba(0, 243, 255, 0.45);
+      color: var(--neon-cyan);
+      height: 36px;
+      padding: 0 0.65rem;
+      border-radius: 9px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      border-color: var(--neon-magenta);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(255, 0, 170, 0.4);
+    }
+
+    .icon-btn.active {
+      border-color: var(--neon-lime);
+      color: var(--neon-lime);
+      box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+    }
+
+    .lang-select {
+      background: rgba(8, 16, 36, 0.95);
+      border: 1px solid rgba(0, 243, 255, 0.5);
+      color: var(--neon-cyan);
+      height: 36px;
+      padding: 0 0.55rem;
+      border-radius: 9px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .lang-select option {
+      background: #070d1e;
+      color: #f8fafc;
+    }
+
+    /* =========================================================================
+       BANIER / AANKONDIGING
+       ========================================================================= */
+    #calloutBanner {
+      position: fixed;
+      top: 24%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      text-align: center;
+      pointer-events: none;
+      z-index: 25;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #calloutBanner.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .callout-main {
+      font-size: clamp(2.1rem, 5vw, 3.6rem);
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--neon-lime);
+      text-shadow: 0 0 24px rgba(57, 255, 20, 0.8), 0 0 42px rgba(0, 243, 255, 0.45);
+      text-transform: uppercase;
+    }
+
+    .callout-sub {
+      font-size: clamp(0.9rem, 2.2vw, 1.15rem);
+      font-weight: 800;
+      letter-spacing: 2.5px;
+      color: var(--neon-amber);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+      margin-top: 0.25rem;
+    }
+
+    /* =========================================================================
+       VOLSKERM-OORLEGSELS (TITEL, POUSE, TELKAART)
+       ========================================================================= */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      background: radial-gradient(circle at center, rgba(10, 18, 42, 0.78) 0%, rgba(3, 6, 16, 0.96) 100%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      overflow-y: auto;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 780px;
+      max-height: 94vh;
+      overflow-y: auto;
+      background: rgba(7, 12, 28, 0.95);
+      border: 2px solid rgba(0, 243, 255, 0.72);
+      border-radius: 18px;
+      padding: 1.6rem 1.8rem;
+      box-shadow:
+        0 0 38px rgba(0, 243, 255, 0.22),
+        0 0 70px rgba(57, 255, 20, 0.12),
+        inset 0 0 22px rgba(0, 243, 255, 0.08);
+      text-align: center;
+    }
+
+    .title-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .game-title {
+      font-size: clamp(1.9rem, 4.8vw, 3.1rem);
+      font-weight: 900;
+      letter-spacing: 3.5px;
+      background: linear-gradient(90deg, #39ff14 0%, #00f3ff 52%, #ff00aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 16px rgba(0, 243, 255, 0.4));
+      text-transform: uppercase;
+      margin-bottom: 0.15rem;
+    }
+
+    .game-subtitle {
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 3.5px;
+      color: var(--neon-amber);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .record-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 0, 170, 0.12);
+      border: 1px solid rgba(255, 0, 170, 0.7);
+      color: #ff85d5;
+      padding: 0.36rem 1rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+      text-align: left;
+      margin-bottom: 1.05rem;
+    }
+
+    .setup-card {
+      background: rgba(4, 8, 22, 0.84);
+      border: 1px solid rgba(0, 243, 255, 0.28);
+      border-radius: 12px;
+      padding: 0.8rem 0.95rem;
+    }
+
+    .setup-label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--neon-cyan);
+      margin-bottom: 0.45rem;
+    }
+
+    .setup-select {
+      width: 100%;
+      background: #0a142d;
+      border: 1px solid rgba(0, 243, 255, 0.45);
+      color: #f8fafc;
+      padding: 0.55rem 0.7rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .pill-btn {
+      flex: 1;
+      min-width: 54px;
+      padding: 0.48rem 0.55rem;
+      background: #0a142d;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .pill-btn.selected {
+      background: rgba(0, 243, 255, 0.18);
+      border-color: var(--neon-cyan);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.35);
+    }
+
+    .pro-bio {
+      margin-top: 0.45rem;
+      font-size: 0.76rem;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+
+    .controls-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem 0.75rem;
+      background: rgba(3, 6, 18, 0.78);
+      border: 1px solid rgba(57, 255, 20, 0.25);
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      margin-bottom: 1.15rem;
+      text-align: left;
+      font-size: 0.78rem;
+      color: #cbd5e1;
+    }
+
+    .controls-strip b {
+      color: var(--neon-lime);
+      margin-right: 0.3rem;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      padding: 0.82rem 2rem;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: #030816;
+      background: linear-gradient(135deg, #7eff66 0%, #39ff14 45%, #00f3ff 100%);
+      box-shadow: 0 0 24px rgba(57, 255, 20, 0.42);
+      transition: transform 0.12s ease, box-shadow 0.14s ease, filter 0.14s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+      box-shadow: 0 0 34px rgba(0, 243, 255, 0.65);
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #2b1644 0%, #172047 100%);
+      color: #f8fafc;
+      border-color: rgba(255, 0, 170, 0.65);
+      box-shadow: 0 0 18px rgba(255, 0, 170, 0.25);
+    }
+
+    /* Telkaart Tabel */
+    .scorecard-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 0.9rem 0 1.2rem 0;
+      background: rgba(3, 6, 18, 0.85);
+      border: 1px solid rgba(0, 243, 255, 0.28);
+      border-radius: 10px;
+      padding: 0.6rem;
+    }
+
+    .scorecard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .scorecard-table th, .scorecard-table td {
+      padding: 0.38rem 0.42rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      text-align: center;
+    }
+
+    .scorecard-table th {
+      color: var(--neon-cyan);
+      font-weight: 800;
+    }
+
+    .sc-under { color: var(--neon-lime); font-weight: 900; }
+    .sc-even { color: #f8fafc; font-weight: 800; }
+    .sc-over { color: var(--neon-amber); font-weight: 800; }
+
+    .new-record-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff00aa 0%, #ffbe0b 100%);
+      color: #040814;
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      padding: 0.34rem 0.95rem;
+      border-radius: 999px;
+      margin: 0.35rem 0 0.6rem 0;
+      animation: pulseRec 0.85s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseRec {
+      from { transform: scale(0.96); box-shadow: 0 0 10px rgba(255, 0, 170, 0.5); }
+      to { transform: scale(1.06); box-shadow: 0 0 22px rgba(255, 190, 11, 0.85); }
+    }
+
+    @media (max-width: 720px) {
+      .setup-grid { grid-template-columns: 1fr; }
+      .controls-strip { grid-template-columns: 1fr 1fr; }
+      .hud-card { gap: 0.6rem; padding: 0.45rem 0.65rem; }
+      .club-panel { min-width: 210px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hoof HTML5 Kanvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- HUD Oorlegsel -->
+  <div id="hud">
+    <div class="hud-top">
+      <div class="hud-card">
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="hole">Putjie</span>
+          <span id="hudHole" class="hud-val cyan">1/4</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="par">Baansyfer</span>
+          <span id="hudPar" class="hud-val">4</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="strokes">Houe</span>
+          <span id="hudStrokes" class="hud-val amber">0</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="total">Totaal</span>
+          <span id="hudTotal" class="hud-val lime">E</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="dist">Afstand</span>
+          <span id="hudDist" class="hud-val">340m</span>
+        </div>
+        <div class="hud-stat" id="hudWaveWrap" style="display:none;">
+          <span class="hud-lbl" data-i18n="wave">Golf</span>
+          <span id="hudWave" class="hud-val magenta">1</span>
+        </div>
+      </div>
+
+      <div class="hud-card" style="gap: 0.45rem;">
+        <div class="wind-box">
+          <div class="wind-compass" title="Wind">
+            <div id="windArrow" class="wind-arrow"></div>
+          </div>
+          <div class="hud-stat" style="min-width: 46px;">
+            <span class="hud-lbl" data-i18n="wind">Wind</span>
+            <span id="hudWind" class="hud-val amber" style="font-size:0.95rem;">8 km/h</span>
+          </div>
+        </div>
+        <button id="btnOverview" class="icon-btn" title="Oorsig (Spasie)">OORSIG</button>
+        <button id="btnResetPractice" class="icon-btn" style="display:none;" title="Herplaas bal (R)">HERPLAAS</button>
+        <button id="btnSound" class="icon-btn" title="Klank (M)">KLANK</button>
+        <select id="hudLang" class="lang-select" aria-label="Taal">
+          <option value="af">AF</option>
+          <option value="nl">NL</option>
+          <option value="ru">RU</option>
+          <option value="en">EN</option>
+          <option value="de">DE</option>
+        </select>
+        <button id="btnPause" class="icon-btn" title="Pouse (P)">||</button>
+      </div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="hud-card club-panel">
+        <div class="club-row">
+          <button id="btnClubPrev" class="club-btn" title="Vorige stok (Y)">Y</button>
+          <div class="club-info">
+            <div id="hudClubName" class="club-name">Drywer (1W)</div>
+            <div id="hudClubMeta" class="club-meta">Maks: 245m • Skoonveld</div>
+          </div>
+          <button id="btnClubNext" class="club-btn" title="Volgende stok (X)">X</button>
+        </div>
+        <div class="power-wrap">
+          <div class="power-head">
+            <span id="hudPowerLbl" data-i18n="powerPrompt">HOU KLIK / CTRL OM TE SLAAN</span>
+            <span id="hudPowerPct" style="color: var(--neon-cyan);">0%</span>
+          </div>
+          <div class="power-bar-bg">
+            <div class="power-sweetspot"></div>
+            <div id="powerFill" class="power-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-card" style="gap: 0.9rem;">
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="course">Baan</span>
+          <span id="hudCourseName" class="hud-val cyan" style="font-size:0.9rem;">Mogol Ellisras</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="player">Speler</span>
+          <span id="hudPlayerName" class="hud-val" style="font-size:0.9rem;">Gary Player</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-lbl" data-i18n="best">Beste</span>
+          <span id="hudBest" class="hud-val magenta" style="font-size:0.95rem;">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aankondiging-Banier -->
+  <div id="calloutBanner">
+    <div id="calloutMain" class="callout-main">VOËLTJIE!</div>
+    <div id="calloutSub" class="callout-sub">-1 ONDER BAANSYFER</div>
+  </div>
+
+  <!-- Titelskerm & Opstelling -->
+  <div id="titleOverlay" class="overlay">
+    <div class="modal-box">
+      <div class="title-top-row">
+        <div class="record-pill">
+          <span data-i18n="bestRecord">BESTE REKORD</span>:
+          <strong id="titleBestText" style="color:#fff;">--</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.45rem;">
+          <span class="hud-lbl" data-i18n="language">Taal</span>
+          <select id="titleLang" class="lang-select">
+            <option value="af">Afrikaans (AF)</option>
+            <option value="nl">Nederlands (NL)</option>
+            <option value="ru">Русский (RU)</option>
+            <option value="en">English (EN)</option>
+            <option value="de">Deutsch (DE)</option>
+          </select>
+        </div>
+      </div>
+
+      <h1 class="game-title">MOGOL GOLFKLUB NEON</h1>
+      <div class="game-subtitle" data-i18n="subtitle">1980'S NEON ARKADE GHOLF</div>
+
+      <div class="setup-grid">
+        <!-- Spelmodus -->
+        <div class="setup-card">
+          <label class="setup-label" data-i18n="modeLabel">Spelmodus</label>
+          <div class="pill-group" id="modeGroup">
+            <button class="pill-btn selected" data-mode="quick" data-i18n="modeQuick">Vinnige Spel</button>
+            <button class="pill-btn" data-mode="career" data-i18n="modeCareer">Loopbaan</button>
+            <button class="pill-btn" data-mode="practice" data-i18n="modePractice">Oefen</button>
+          </div>
+          <div id="modeDesc" class="pro-bio" style="color:#94a3b8;"></div>
+        </div>
+
+        <!-- Aantal Putjies -->
+        <div class="setup-card">
+          <label class="setup-label" data-i18n="holesLabel">Aantal Putjies</label>
+          <div class="pill-group" id="holesGroup">
+            <button class="pill-btn" data-holes="1">1</button>
+            <button class="pill-btn selected" data-holes="4">4</button>
+            <button class="pill-btn" data-holes="8">8</button>
+            <button class="pill-btn" data-holes="18">18</button>
+          </div>
+          <div class="pro-bio" style="color:#94a3b8;" data-i18n="holesHint">Afslaan tot setwerk op elke putjie</div>
+        </div>
+
+        <!-- Gholfbaan -->
+        <div class="setup-card">
+          <label class="setup-label" data-i18n="courseLabel">Beroemde Gholfbaan</label>
+          <select id="courseSelect" class="setup-select">
+            <option value="mogol">Mogol Golfklub Ellisras (ZA)</option>
+            <option value="suncity">Sun City — Gary Player CC (ZA)</option>
+            <option value="standrews">St Andrews Old Course (SCO)</option>
+            <option value="augusta">Augusta Pines National (USA)</option>
+            <option value="random" data-i18n="randomCourse">Willekeurige Beroemde Baan</option>
+          </select>
+          <div id="courseDesc" class="pro-bio" style="color:#94a3b8;"></div>
+        </div>
+
+        <!-- 1980's Speler -->
+        <div class="setup-card">
+          <label class="setup-label" data-i18n="proLabel">1980's Kampioen-Speler</label>
+          <select id="proSelect" class="setup-select"></select>
+          <div id="proStats" class="pro-bio"></div>
+        </div>
+      </div>
+
+      <div class="controls-strip">
+        <div><b>WASD</b> <span data-i18n="ctrlMove">Kamera / Mik-skuif</span></div>
+        <div><b>X / Y</b> <span data-i18n="ctrlClub">Wissel Gholfstok</span></div>
+        <div><b data-i18n="mouseKey">Muis</b> <span data-i18n="ctrlAim">Mik rigting</span></div>
+        <div><b data-i18n="hitKey">Klik / Ctrl</b> <span data-i18n="ctrlHit">Hou vir krag, los om te slaan</span></div>
+        <div><b data-i18n="spaceKey">Spasie</b> <span data-i18n="ctrlOverview">Baan-oorsig</span></div>
+        <div><b>R / P / M</b> <span data-i18n="ctrlMisc">Herplaas / Pouse / Klank</span></div>
+      </div>
+
+      <div class="btn-row">
+        <button id="btnStartGame" class="btn" data-i18n="startBtn">AFSLAAN!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pouse Oorlegsel -->
+  <div id="pauseOverlay" class="overlay hidden">
+    <div class="modal-box" style="max-width: 440px;">
+      <h2 class="game-title" style="font-size: 2.2rem;" data-i18n="paused">GEPOUSEER</h2>
+      <p style="color:#94a3b8; margin: 0.6rem 0 1.5rem 0;" data-i18n="pausedSub">Neem 'n blaaskans op die klubhuis-stoep.</p>
+      <div class="btn-row">
+        <button id="btnResume" class="btn" data-i18n="resumeBtn">HERVAT</button>
+        <button id="btnQuitToMenu" class="btn btn-secondary" data-i18n="menuBtn">HOOFKIESLYS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ronde / Toernooi Telkaart Oorlegsel -->
+  <div id="summaryOverlay" class="overlay hidden">
+    <div class="modal-box" style="max-width: 680px;">
+      <h2 id="summaryTitle" class="game-title" style="font-size: 2.3rem;">RONDE VOLTOOI</h2>
+      <div id="summarySub" class="game-subtitle" style="margin-bottom:0.5rem;"></div>
+      <div id="newRecordBadge" class="new-record-badge" style="display:none;" data-i18n="newRecord">NUWE REKORD!</div>
+
+      <div class="scorecard-table-wrap">
+        <table class="scorecard-table" id="scorecardTable"></table>
+      </div>
+
+      <div id="summaryMeta" style="color:#cbd5e1; font-size:0.95rem; margin-bottom:1.25rem; font-weight:700;"></div>
+
+      <div class="btn-row">
+        <button id="btnNextWave" class="btn" style="display:none;" data-i18n="nextWaveBtn">VOLGENDE GOLF</button>
+        <button id="btnPlayAgain" class="btn" data-i18n="playAgainBtn">SPEEL WEER</button>
+        <button id="btnSummaryMenu" class="btn btn-secondary" data-i18n="menuBtn">HOOFKIESLYS</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // 1. MEERTALIGE WOORDEBOEK (AFRIKAANS VERSTEK, NL, RU, EN, DE)
+      // =========================================================================
+      const I18N = {
+        af: {
+          subtitle: "1980'S NEON ARKADE GHOLF",
+          hole: "Putjie", par: "Baansyfer", strokes: "Houe", total: "Totaal", dist: "Afstand",
+          wave: "Golf", wind: "Wind", course: "Baan", player: "Speler", best: "Beste",
+          bestRecord: "BESTE REKORD", language: "Taal",
+          modeLabel: "Spelmodus", modeQuick: "Vinnige Spel", modeCareer: "Loopbaan", modePractice: "Oefen",
+          modeDescQuick: "Speel 'n gekose of willekeurige beroemde baan.",
+          modeDescCareer: "Toenemend moeiliker toernooi-golwe met sterker winde en strenger teikens!",
+          modeDescPractice: "Onbeperkte oefenhoue — druk R om bal dadelik terug te plaas.",
+          holesLabel: "Aantal Putjies", holesHint: "Volledige spel van afslaan tot setwerk",
+          courseLabel: "Beroemde Gholfbaan", randomCourse: "Willekeurige Beroemde Baan",
+          proLabel: "1980's Kampioen-Speler",
+          ctrlMove: "Kamera / Mik-skuif", ctrlClub: "Wissel Gholfstok",
+          mouseKey: "Muis", ctrlAim: "Mik rigting",
+          hitKey: "Klik / Ctrl", ctrlHit: "Hou vir krag, los om te slaan",
+          spaceKey: "Spasie", ctrlOverview: "Baan-oorsig",
+          ctrlMisc: "Herplaas / Pouse / Klank",
+          startBtn: "AFSLAAN!", paused: "GEPOUSEER", pausedSub: "Neem 'n blaaskans op die klubhuis-stoep.",
+          resumeBtn: "HERVAT", menuBtn: "HOOFKIESLYS", newRecord: "NUWE REKORD!",
+          nextWaveBtn: "VOLGENDE GOLF", playAgainBtn: "SPEEL WEER",
+          powerPrompt: "HOU KLIK / CTRL OM TE SLAAN", charging: "KRAG BOU OP — LOS OM TE SLAAN!",
+          overview: "OORSIG", resetBall: "HERPLAAS", soundOn: "KLANK", soundOff: "STIL",
+          pwr: "Krag", acc: "Akk.", put: "Set",
+          max: "Maks",
+          lies: { tee: "Afslaanplek", fairway: "Skoonveld", rough: "Ruigte", bunker: "Sandkuil", green: "Setperk", water: "Water" },
+          clubs: ["Drywer (1W)", "3-Hout (3W)", "5-Yster (5I)", "7-Yster (7I)", "9-Yster (9I)", "Wigstok (PW)", "Sandwig (SW)", "Setstok (PT)"],
+          callouts: {
+            ace: "KOLHOU!", eagle: "AREND!", birdie: "VOËLTJIE!", par: "BAANSYFER",
+            bogey: "BOGEY", double: "DUBBEL-BOGEY", triple: "HOË TELLING",
+            water: "WATER! +1 STRAFHOU", oob: "BUITE GRENSE! +1", practiceReset: "BAL HERPLAAS",
+            waveClear: "GOLF VOLTOOI!", waveFail: "TOERNOOI GEËINDIG",
+            roundDone: "RONDE VOLTOOI", targetMet: "Teiken behaal! Gereed vir Golf",
+            targetMissed: "Teiken gemis — probeer weer!",
+            shotTelemetry: "Skoot", strokesWord: "houe"
+          }
+        },
+        nl: {
+          subtitle: "1980'S NEON ARCADE GOLF",
+          hole: "Hole", par: "Par", strokes: "Slagen", total: "Totaal", dist: "Afstand",
+          wave: "Ronde", wind: "Wind", course: "Baan", player: "Speler", best: "Beste",
+          bestRecord: "BESTE RECORD", language: "Taal",
+          modeLabel: "Spelmodus", modeQuick: "Snel Spel", modeCareer: "Carrière", modePractice: "Oefenen",
+          modeDescQuick: "Speel een gekozen of willekeurige beroemde golfbaan.",
+          modeDescCareer: "Steeds moeilijkere toernooigolven met hardere wind en scherpere doelen!",
+          modeDescPractice: "Onbeperkt oefenen — druk op R om de bal direct terug te leggen.",
+          holesLabel: "Aantal Holes", holesHint: "Volledig golfen van afslag tot putten",
+          courseLabel: "Beroemde Golfbaan", randomCourse: "Willekeurige Beroemde Baan",
+          proLabel: "1980's Kampioen-Speler",
+          ctrlMove: "Camera / Richting", ctrlClub: "Wissel Golfclub",
+          mouseKey: "Muis", ctrlAim: "Richt bal",
+          hitKey: "Klik / Ctrl", ctrlHit: "Houd vast voor kracht, laat los om te slaan",
+          spaceKey: "Spatie", ctrlOverview: "Baanoverzicht",
+          ctrlMisc: "Reset / Pauze / Geluid",
+          startBtn: "AFSLAAN!", paused: "GEPAUZEERD", pausedSub: "Even bijkomen in het clubhuis.",
+          resumeBtn: "HERVATTEN", menuBtn: "HOOFDMENU", newRecord: "NIEUW RECORD!",
+          nextWaveBtn: "VOLGENDE GOLF", playAgainBtn: "SPEEL OPNIEUW",
+          powerPrompt: "HOUD KLIK / CTRL IN OM TE SLAAN", charging: "KRACHT OPBOUWEN — LAAT LOS!",
+          overview: "OVERZICHT", resetBall: "HERPLAATS", soundOn: "GELUID", soundOff: "STIL",
+          pwr: "Kracht", acc: "Prec.", put: "Put",
+          max: "Max",
+          lies: { tee: "Afslagplaats", fairway: "Fairway", rough: "Rough", bunker: "Bunker", green: "Green", water: "Water" },
+          clubs: ["Driver (1W)", "3-Wood (3W)", "5-IJzer (5I)", "7-IJzer (7I)", "9-IJzer (9I)", "Pitching Wedge", "Sand Wedge", "Putter (PT)"],
+          callouts: {
+            ace: "HOLE-IN-ONE!", eagle: "EAGLE!", birdie: "BIRDIE!", par: "PAR",
+            bogey: "BOGEY", double: "DUBBELE BOGEY", triple: "HOGE SCORE",
+            water: "WATER! +1 STRAFSLAG", oob: "UIT DE BAAN! +1", practiceReset: "BAL HERPLAATST",
+            waveClear: "TOERNOOI GEHAALD!", waveFail: "CARRIÈRE VOORBIJ",
+            roundDone: "RONDE VOLTOOID", targetMet: "Doel behaald! Klaar voor Golf",
+            targetMissed: "Doel gemist — probeer opnieuw!",
+            shotTelemetry: "Slag", strokesWord: "slagen"
+          }
+        },
+        ru: {
+          subtitle: "НЕОНОВЫЙ АРКАДНЫЙ ГОЛЬФ 1980-Х",
+          hole: "Лунка", par: "Пар", strokes: "Удары", total: "Итог", dist: "Дист.",
+          wave: "Волна", wind: "Ветер", course: "Поле", player: "Игрок", best: "Рекорд",
+          bestRecord: "ЛУЧШИЙ СЧЁТ", language: "Язык",
+          modeLabel: "Режим игры", modeQuick: "Быстрая игра", modeCareer: "Карьера", modePractice: "Тренировка",
+          modeDescQuick: "Сыграйте на выбранном или случайном знаменитом поле.",
+          modeDescCareer: "Всё более сложные турнирные волны с сильным ветром!",
+          modeDescPractice: "Свободная тренировка — нажмите R для возврата мяча.",
+          holesLabel: "Число лунок", holesHint: "Полный гольф: от ти до паттинга",
+          courseLabel: "Знаменитое поле", randomCourse: "Случайное знаменитое поле",
+          proLabel: "Легенда 1980-х",
+          ctrlMove: "Камера / Сдвиг", ctrlClub: "Сменить клюшку",
+          mouseKey: "Мышь", ctrlAim: "Прицел",
+          hitKey: "Клик / Ctrl", ctrlHit: "Удерживайте для силы, отпустите для удара",
+          spaceKey: "Пробел", ctrlOverview: "Обзор поля",
+          ctrlMisc: "Сброс / Пауза / Звук",
+          startBtn: "НАЧАТЬ!", paused: "ПАУЗА", pausedSub: "Отдых в гольф-клубе.",
+          resumeBtn: "ПРОДОЛЖИТЬ", menuBtn: "МЕНЮ", newRecord: "НОВЫЙ РЕКОРД!",
+          nextWaveBtn: "СЛЕД. ВОЛНА", playAgainBtn: "ИГРАТЬ СНОВА",
+          powerPrompt: "УДЕРЖИВАЙТЕ КЛИК / CTRL ДЛЯ УДАРА", charging: "НАБОР СИЛЫ — ОТПУСТИТЕ!",
+          overview: "ОБЗОР", resetBall: "СБРОС", soundOn: "ЗВУК", soundOff: "ТИХО",
+          pwr: "Сила", acc: "Точн.", put: "Патт",
+          max: "Макс",
+          lies: { tee: "Ти", fairway: "Фервей", rough: "Раф", bunker: "Бункер", green: "Грин", water: "Вода" },
+          clubs: ["Драйвер (1W)", "3-Вуд (3W)", "5-Айрон (5I)", "7-Айрон (7I)", "9-Айрон (9I)", "Питчинг-ведж", "Сэнд-ведж", "Паттер (PT)"],
+          callouts: {
+            ace: "ХОУЛ-ИН-УАН!", eagle: "ИГЛ!", birdie: "БЁРДИ!", par: "ПАР",
+            bogey: "БОГИ", double: "ДВОЙНОЙ БОГИ", triple: "СЛОЖНАЯ ЛУНКА",
+            water: "ВОДА! +1 ШТРАФ", oob: "АУТ! +1 ШТРАФ", practiceReset: "МЯЧ ВОЗВРАЩЁН",
+            waveClear: "ВОЛНА ПРОЙДЕНА!", waveFail: "ТУРНИР ЗАВЕРШЁН",
+            roundDone: "РАУНД ЗАВЕРШЁН", targetMet: "Цель достигнута! Вперёд к волне",
+            targetMissed: "Цель не достигнута — попробуйте снова!",
+            shotTelemetry: "Удар", strokesWord: "уд."
+          }
+        },
+        en: {
+          subtitle: "1980S NEON ARCADE GOLF",
+          hole: "Hole", par: "Par", strokes: "Strokes", total: "Total", dist: "Dist",
+          wave: "Wave", wind: "Wind", course: "Course", player: "Player", best: "Best",
+          bestRecord: "BEST RECORD", language: "Lang",
+          modeLabel: "Game Mode", modeQuick: "Quick Play", modeCareer: "Career", modePractice: "Practice",
+          modeDescQuick: "Play a chosen or random famous championship course.",
+          modeDescCareer: "Increasingly difficult tournament waves with stronger winds & tighter cuts!",
+          modeDescPractice: "Unlimited practice shots — press R to reset your ball anytime.",
+          holesLabel: "Number of Holes", holesHint: "Full golfing from tee-off to putting",
+          courseLabel: "Famous Golf Course", randomCourse: "Random Famous Course",
+          proLabel: "1980s Legend Golfer",
+          ctrlMove: "Camera / Pan", ctrlClub: "Switch Club",
+          mouseKey: "Mouse", ctrlAim: "Aim shot",
+          hitKey: "Click / Ctrl", ctrlHit: "Hold for power, release to swing",
+          spaceKey: "Space", ctrlOverview: "Hole Overview",
+          ctrlMisc: "Reset / Pause / Sound",
+          startBtn: "TEE OFF!", paused: "PAUSED", pausedSub: "Take a breather at the clubhouse.",
+          resumeBtn: "RESUME", menuBtn: "MAIN MENU", newRecord: "NEW RECORD!",
+          nextWaveBtn: "NEXT WAVE", playAgainBtn: "PLAY AGAIN",
+          powerPrompt: "HOLD CLICK / CTRL TO SWING", charging: "POWER BUILDING — RELEASE TO HIT!",
+          overview: "OVERVIEW", resetBall: "RESET", soundOn: "SOUND", soundOff: "MUTE",
+          pwr: "Power", acc: "Acc.", put: "Putt",
+          max: "Max",
+          lies: { tee: "Tee Box", fairway: "Fairway", rough: "Rough", bunker: "Bunker", green: "Green", water: "Water" },
+          clubs: ["Driver (1W)", "3-Wood (3W)", "5-Iron (5I)", "7-Iron (7I)", "9-Iron (9I)", "Pitching Wedge", "Sand Wedge", "Putter (PT)"],
+          callouts: {
+            ace: "HOLE-IN-ONE!", eagle: "EAGLE!", birdie: "BIRDIE!", par: "PAR",
+            bogey: "BOGEY", double: "DOUBLE BOGEY", triple: "TOUGH HOLE",
+            water: "WATER! +1 PENALTY", oob: "OUT OF BOUNDS! +1", practiceReset: "BALL RESET",
+            waveClear: "WAVE CLEARED!", waveFail: "TOURNAMENT OVER",
+            roundDone: "ROUND COMPLETE", targetMet: "Target met! Ready for Wave",
+            targetMissed: "Target missed — try again!",
+            shotTelemetry: "Shot", strokesWord: "strokes"
+          }
+        },
+        de: {
+          subtitle: "1980ER NEON ARCADE GOLF",
+          hole: "Loch", par: "Par", strokes: "Schläge", total: "Gesamt", dist: "Distanz",
+          wave: "Welle", wind: "Wind", course: "Platz", player: "Spieler", best: "Beste",
+          bestRecord: "BESTWERT", language: "Sprache",
+          modeLabel: "Spielmodus", modeQuick: "Schnellspiel", modeCareer: "Karriere", modePractice: "Übung",
+          modeDescQuick: "Spiele einen gewählten oder zufälligen berühmten Golfplatz.",
+          modeDescCareer: "Immer schwerere Turnier-Wellen mit stärkerem Wind!",
+          modeDescPractice: "Unbegrenzt üben — drücke R um den Ball zurückzusetzen.",
+          holesLabel: "Anzahl Löcher", holesHint: "Vom Abschlag bis zum Putten",
+          courseLabel: "Berühmter Golfplatz", randomCourse: "Zufälliger Berühmter Platz",
+          proLabel: "1980er Golf-Legende",
+          ctrlMove: "Kamera / Schwenk", ctrlClub: "Schläger wechseln",
+          mouseKey: "Maus", ctrlAim: "Zielen",
+          hitKey: "Klick / Strg", ctrlHit: "Halten für Kraft, loslassen zum Schlagen",
+          spaceKey: "Leertaste", ctrlOverview: "Platzübersicht",
+          ctrlMisc: "Reset / Pause / Ton",
+          startBtn: "ABSCHLAG!", paused: "PAUSIERT", pausedSub: "Kurze Pause im Clubhaus.",
+          resumeBtn: "WEITER", menuBtn: "HAUPTMENÜ", newRecord: "NEUER REKORD!",
+          nextWaveBtn: "NÄCHSTE WELLE", playAgainBtn: "NOCHMAL",
+          powerPrompt: "KLICK / STRG HALTEN ZUM SCHLAGEN", charging: "KRAFT AUFBAUEN — LOSLASSEN!",
+          overview: "ÜBERSICHT", resetBall: "RESET", soundOn: "TON", soundOff: "STUMM",
+          pwr: "Kraft", acc: "Präz.", put: "Putt",
+          max: "Max",
+          lies: { tee: "Abschlag", fairway: "Fairway", rough: "Rough", bunker: "Bunker", green: "Grün", water: "Wasser" },
+          clubs: ["Driver (1W)", "3er-Holz (3W)", "5er-Eisen (5I)", "7er-Eisen (7I)", "9er-Eisen (9I)", "Pitching Wedge", "Sand Wedge", "Putter (PT)"],
+          callouts: {
+            ace: "HOLE-IN-ONE!", eagle: "EAGLE!", birdie: "BIRDIE!", par: "PAR",
+            bogey: "BOGEY", double: "DOPPEL-BOGEY", triple: "SCHWERES LOCH",
+            water: "WASSER! +1 STRAF", oob: "AUS! +1 STRAF", practiceReset: "BALL ZURÜCK",
+            waveClear: "WELLE GESCHAFFT!", waveFail: "TURNIER VORBEI",
+            roundDone: "RUNDE BEENDET", targetMet: "Ziel erreicht! Bereit für Welle",
+            targetMissed: "Ziel verfehlt — nochmal versuchen!",
+            shotTelemetry: "Schlag", strokesWord: "Schläge"
+          }
+        }
+      };
+
+      let currentLang = 'af';
+      function t(key) {
+        return (I18N[currentLang] && I18N[currentLang][key]) || I18N.af[key] || key;
+      }
+
+      // =========================================================================
+      // 2. BEROEMDE GHOLFBANE & 1980'S LEGENDES
+      // =========================================================================
+      const COURSES = {
+        mogol: {
+          id: 'mogol',
+          name: 'Mogol Golfklub Ellisras',
+          shortName: 'Mogol Ellisras',
+          desc: 'Limpopo Bosveld • Akasia-bome & neon-damme',
+          seed: 1984,
+          fairwayColor: '#0b2f26',
+          fairwayBorder: '#39ff14',
+          greenColor: '#0f4c35',
+          greenBorder: '#7eff66',
+          roughBg: '#061518',
+          gridColor: 'rgba(57, 255, 20, 0.08)',
+          treeColor: '#19e68c',
+          bunkerColor: '#f5b700',
+          waterColor: '#00d4ff',
+          windBase: 7,
+          hazardRate: 0.72
+        },
+        suncity: {
+          id: 'suncity',
+          name: 'Sun City — Gary Player CC',
+          shortName: 'Sun City GPCC',
+          desc: 'Pilanesberg • Diep sandkuile & eiland-setperke',
+          seed: 1987,
+          fairwayColor: '#112c2d',
+          fairwayBorder: '#00f3ff',
+          greenColor: '#114d44',
+          greenBorder: '#39ff14',
+          roughBg: '#091020',
+          gridColor: 'rgba(0, 243, 255, 0.09)',
+          treeColor: '#00f3ff',
+          bunkerColor: '#ffbe0b',
+          waterColor: '#0096ff',
+          windBase: 11,
+          hazardRate: 0.9
+        },
+        standrews: {
+          id: 'standrews',
+          name: 'St Andrews Old Course',
+          shortName: 'St Andrews',
+          desc: 'Skotse Skakels • Sterk kuswind & pot-bunkers',
+          seed: 1981,
+          fairwayColor: '#132a24',
+          fairwayBorder: '#7bf1a8',
+          greenColor: '#194a3c',
+          greenBorder: '#b8ff9e',
+          roughBg: '#08101c',
+          gridColor: 'rgba(123, 241, 168, 0.07)',
+          treeColor: '#64dfdf',
+          bunkerColor: '#ffd166',
+          waterColor: '#3a86ff',
+          windBase: 16,
+          hazardRate: 0.65
+        },
+        augusta: {
+          id: 'augusta',
+          name: 'Augusta Pines National',
+          shortName: 'Augusta Pines',
+          desc: 'Neon Azaleas • Vinnige setperke & spruit-hindernis',
+          seed: 1986,
+          fairwayColor: '#0b2b1e',
+          fairwayBorder: '#ff00aa',
+          greenColor: '#0e4d30',
+          greenBorder: '#39ff14',
+          roughBg: '#0c081b',
+          gridColor: 'rgba(255, 0, 170, 0.08)',
+          treeColor: '#ff4dc4',
+          bunkerColor: '#ffe066',
+          waterColor: '#00e5ff',
+          windBase: 9,
+          hazardRate: 0.85
+        }
+      };
+
+      const PRO_PLAYERS = [
+        { id: 'gary', name: 'Gary Player (ZA)', title: 'Die Swart Ridder', power: 0.96, accuracy: 0.97, putting: 0.95, color: '#00f3ff' },
+        { id: 'jack', name: 'Jack Nicklaus (USA)', title: 'Die Goue Beer', power: 1.04, accuracy: 0.94, putting: 0.98, color: '#ffbe0b' },
+        { id: 'ernie', name: 'Ernie Els (ZA)', title: 'Die Groot Maklike', power: 1.05, accuracy: 0.93, putting: 0.94, color: '#39ff14' },
+        { id: 'seve', name: 'Seve Ballesteros (ESP)', title: 'El Maestro', power: 0.98, accuracy: 0.91, putting: 0.99, color: '#ff00aa' },
+        { id: 'nick', name: 'Nick Price (ZIM/ZA)', title: 'Blits-Swaai', power: 0.99, accuracy: 0.98, putting: 0.93, color: '#a855f7' },
+        { id: 'greg', name: 'Greg Norman (AUS)', title: 'Die Wit Haai', power: 1.08, accuracy: 0.88, putting: 0.91, color: '#38bdf8' }
+      ];
+
+      // 8 Gholfstokke van Drywer tot Setstok
+      const CLUBS = [
+        { id: 0, maxDist: 250, loft: 0.28, roll: 0.34, spread: 0.045, isPutter: false, sound: 'driver' },
+        { id: 1, maxDist: 215, loft: 0.34, roll: 0.28, spread: 0.038, isPutter: false, sound: 'driver' },
+        { id: 2, maxDist: 175, loft: 0.44, roll: 0.20, spread: 0.030, isPutter: false, sound: 'iron' },
+        { id: 3, maxDist: 145, loft: 0.52, roll: 0.16, spread: 0.025, isPutter: false, sound: 'iron' },
+        { id: 4, maxDist: 115, loft: 0.60, roll: 0.12, spread: 0.020, isPutter: false, sound: 'iron' },
+        { id: 5, maxDist: 85,  loft: 0.70, roll: 0.08, spread: 0.016, isPutter: false, sound: 'wedge' },
+        { id: 6, maxDist: 55,  loft: 0.82, roll: 0.05, spread: 0.015, isPutter: false, sound: 'wedge' },
+        { id: 7, maxDist: 38,  loft: 0.0,  roll: 1.00, spread: 0.006, isPutter: true,  sound: 'putt' }
+      ];
+
+      // =========================================================================
+      // 3. PROSEDURELE GHOLF-KLANK-ENJIN (WEB AUDIO API)
+      // =========================================================================
+      class GolfAudio {
+        constructor() {
+          this.ctx = null;
+          this.noiseBuf = null;
+          this.enabled = true;
+        }
+
+        init() {
+          try {
+            if (!this.ctx) {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              if (!AC) return;
+              this.ctx = new AC();
+              const len = Math.floor(this.ctx.sampleRate * 1.2);
+              this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+              const d = this.noiseBuf.getChannelData(0);
+              for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+            }
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+          } catch (e) {
+            // Ignoreer indien blaaier klank blokkeer
+          }
+        }
+
+        playSwing(type, power) {
+          if (!this.enabled || !this.ctx || !this.noiseBuf) return;
+          const now = this.ctx.currentTime;
+          const p = Math.max(0.25, power);
+
+          if (type === 'putt') {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(240 + p * 80, now);
+            osc.frequency.exponentialRampToValueAtTime(95, now + 0.045);
+            g.gain.setValueAtTime(0.18 * p, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(now); osc.stop(now + 0.055);
+            return;
+          }
+
+          // Swaai-windgeruis
+          const whoosh = this.ctx.createBufferSource();
+          whoosh.buffer = this.noiseBuf;
+          const wf = this.ctx.createBiquadFilter();
+          wf.type = 'bandpass';
+          wf.frequency.setValueAtTime(320, now);
+          wf.frequency.exponentialRampToValueAtTime(1400, now + 0.09);
+          const wg = this.ctx.createGain();
+          wg.gain.setValueAtTime(0.14 * p, now);
+          wg.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          whoosh.connect(wf); wf.connect(wg); wg.connect(this.ctx.destination);
+          whoosh.start(now); whoosh.stop(now + 0.13);
+
+          // Bal-impak (metaalagtige drywer-klap of yster-klik)
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = type === 'driver' ? 'triangle' : 'sine';
+          const baseFreq = type === 'driver' ? 520 : type === 'iron' ? 760 : 620;
+          osc.frequency.setValueAtTime(baseFreq, now + 0.02);
+          osc.frequency.exponentialRampToValueAtTime(110, now + 0.11);
+          g.gain.setValueAtTime(0.32 * p, now + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(g); g.connect(this.ctx.destination);
+          osc.start(now + 0.02); osc.stop(now + 0.13);
+        }
+
+        playBounce(surface) {
+          if (!this.enabled || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          if (surface === 'bunker' && this.noiseBuf) {
+            const src = this.ctx.createBufferSource();
+            src.buffer = this.noiseBuf;
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'lowpass';
+            f.frequency.setValueAtTime(650, now);
+            const g = this.ctx.createGain();
+            g.gain.setValueAtTime(0.22, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            src.connect(f); f.connect(g); g.connect(this.ctx.destination);
+            src.start(now); src.stop(now + 0.19);
+            return;
+          }
+          const osc = this.ctx.createOscillator();
+          const g = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(surface === 'tree' ? 280 : 155, now);
+          osc.frequency.exponentialRampToValueAtTime(55, now + 0.06);
+          g.gain.setValueAtTime(surface === 'tree' ? 0.25 : 0.12, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+          osc.connect(g); g.connect(this.ctx.destination);
+          osc.start(now); osc.stop(now + 0.07);
+        }
+
+        playSplash() {
+          if (!this.enabled || !this.ctx || !this.noiseBuf) return;
+          const now = this.ctx.currentTime;
+          const src = this.ctx.createBufferSource();
+          src.buffer = this.noiseBuf;
+          const f = this.ctx.createBiquadFilter();
+          f.type = 'bandpass';
+          f.frequency.setValueAtTime(900, now);
+          f.frequency.exponentialRampToValueAtTime(240, now + 0.45);
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.32, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+          src.connect(f); f.connect(g); g.connect(this.ctx.destination);
+          src.start(now); src.stop(now + 0.5);
+        }
+
+        playCupDrop() {
+          if (!this.enabled || !this.ctx) return;
+          const now = this.ctx.currentTime;
+          [780, 620, 490].forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            const t0 = now + i * 0.055;
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t0);
+            g.gain.setValueAtTime(0.22, t0);
+            g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.07);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(t0); osc.stop(t0 + 0.075);
+          });
+        }
+
+        playApplause(celebrate = false) {
+          if (!this.enabled || !this.ctx || !this.noiseBuf) return;
+          const now = this.ctx.currentTime;
+          // Sagte skare-applous via gefiltreerde geraas
+          const dur = celebrate ? 1.15 : 0.65;
+          const src = this.ctx.createBufferSource();
+          src.buffer = this.noiseBuf;
+          const f = this.ctx.createBiquadFilter();
+          f.type = 'bandpass';
+          f.frequency.setValueAtTime(1250, now);
+          f.Q.value = 0.8;
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.01, now);
+          g.gain.linearRampToValueAtTime(celebrate ? 0.16 : 0.09, now + 0.12);
+          g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+          src.connect(f); f.connect(g); g.connect(this.ctx.destination);
+          src.start(now); src.stop(now + dur + 0.02);
+
+          if (celebrate) {
+            [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+              const osc = this.ctx.createOscillator();
+              const og = this.ctx.createGain();
+              const t0 = now + 0.12 + i * 0.09;
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, t0);
+              og.gain.setValueAtTime(0.14, t0);
+              og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+              osc.connect(og); og.connect(this.ctx.destination);
+              osc.start(t0); osc.stop(t0 + 0.3);
+            });
+          }
+        }
+      }
+
+      const audio = new GolfAudio();
+
+      // =========================================================================
+      // 4. DETERMINISTIESE BAAN-GENERATOR (1 TOT 18 PUTJIES PER BAAN)
+      // =========================================================================
+      const METER_TO_PX = 2.55;
+
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0;
+          a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function generateHole(course, holeNum, waveLevel) {
+        const rng = mulberry32(course.seed * 31 + holeNum * 97 + waveLevel * 13);
+        const parPattern = [4, 4, 3, 5, 4, 3, 4, 5, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4];
+        const par = parPattern[(holeNum - 1) % parPattern.length];
+
+        const lengthMeters = par === 3
+          ? 145 + Math.floor(rng() * 55)
+          : par === 4
+            ? 300 + Math.floor(rng() * 110)
+            : 465 + Math.floor(rng() * 90);
+
+        const lengthPx = lengthMeters * METER_TO_PX;
+        const tee = { x: 0, y: 0 };
+
+        // Skep 'n vloeiende skoonveld-rugstring (met dogleg vir Par 4 & Par 5)
+        const nodes = [{ x: 0, y: 0, r: 58 }];
+        const doglegDir = rng() > 0.5 ? 1 : -1;
+        const doglegMag = par === 3 ? 0 : (par === 4 ? (0.12 + rng() * 0.22) : (0.18 + rng() * 0.26)) * lengthPx * doglegDir;
+
+        const segments = par === 3 ? 4 : par === 4 ? 7 : 9;
+        for (let i = 1; i <= segments; i++) {
+          const frac = i / segments;
+          const curve = Math.sin(frac * Math.PI) * doglegMag;
+          const nx = curve;
+          const ny = -frac * lengthPx;
+          const widthR = par === 3 ? 52 : (64 + Math.sin(frac * Math.PI) * 26);
+          nodes.push({ x: nx, y: ny, r: widthR });
+        }
+
+        const greenCenter = { x: nodes[nodes.length - 1].x, y: nodes[nodes.length - 1].y };
+        const greenRadius = par === 3 ? 64 : 74;
+        const pinOffsetAngle = rng() * Math.PI * 2;
+        const pinOffsetDist = rng() * (greenRadius * 0.38);
+        const pin = {
+          x: greenCenter.x + Math.cos(pinOffsetAngle) * pinOffsetDist,
+          y: greenCenter.y + Math.sin(pinOffsetAngle) * pinOffsetDist
+        };
+
+        // Subtiele setperk-helling vir realistiese setwerk
+        const slopeAng = rng() * Math.PI * 2;
+        const slopeStrength = 6 + rng() * 12 + waveLevel * 2.5;
+        const greenSlope = {
+          x: Math.cos(slopeAng) * slopeStrength,
+          y: Math.sin(slopeAng) * slopeStrength
+        };
+
+        // Sandkuile (bunkers) langs skoonveld en rondom setperk
+        const bunkers = [];
+        const bunkerCount = Math.min(6, 2 + Math.floor((course.hazardRate + waveLevel * 0.12) * 3));
+        for (let i = 0; i < bunkerCount; i++) {
+          const nearGreen = i < 2;
+          let bx, by, br;
+          if (nearGreen) {
+            const ang = (i === 0 ? 0.6 : 2.5) + (rng() - 0.5) * 0.7;
+            const d = greenRadius + 24 + rng() * 18;
+            bx = greenCenter.x + Math.cos(ang) * d;
+            by = greenCenter.y + Math.sin(ang) * d;
+            br = 24 + rng() * 14;
+          } else {
+            const node = nodes[Math.min(nodes.length - 2, 1 + Math.floor(rng() * (nodes.length - 2)))];
+            const side = rng() > 0.5 ? 1 : -1;
+            bx = node.x + side * (node.r + 16 + rng() * 20);
+            by = node.y + (rng() - 0.5) * 40;
+            br = 26 + rng() * 18;
+          }
+          if (Math.hypot(bx - tee.x, by - tee.y) > 95 && Math.hypot(bx - pin.x, by - pin.y) > greenRadius * 0.85) {
+            bunkers.push({ x: bx, y: by, rx: br * (0.9 + rng() * 0.45), ry: br * (0.7 + rng() * 0.4), rot: rng() * Math.PI });
+          }
+        }
+
+        // Waterhindernisse (nooit bo-op afslaanplek of vlag nie)
+        const waters = [];
+        const waterCount = rng() < (course.hazardRate + waveLevel * 0.08) ? (par === 5 ? 2 : 1) : 0;
+        for (let i = 0; i < waterCount; i++) {
+          const idx = Math.max(1, Math.min(nodes.length - 2, Math.floor(nodes.length * (0.45 + i * 0.25))));
+          const node = nodes[idx];
+          const side = (i % 2 === 0 ? 1 : -1) * (doglegDir || 1);
+          const wx = node.x - side * (node.r + 58 + rng() * 35);
+          const wy = node.y + (rng() - 0.5) * 60;
+          const rx = 58 + rng() * 44;
+          const ry = 42 + rng() * 34;
+          if (Math.hypot(wx - tee.x, wy - tee.y) > 150 && Math.hypot(wx - greenCenter.x, wy - greenCenter.y) > greenRadius + rx * 0.7) {
+            waters.push({ x: wx, y: wy, rx, ry, rot: rng() * Math.PI });
+          }
+        }
+
+        // Bome in die ruigte (weg van skoonveld, setperk en water)
+        const trees = [];
+        const treeAttempts = 55 + par * 14;
+        for (let i = 0; i < treeAttempts; i++) {
+          const node = nodes[Math.floor(rng() * nodes.length)];
+          const side = rng() > 0.5 ? 1 : -1;
+          const distOut = node.r + 48 + rng() * 210;
+          const tx = node.x + side * distOut + (rng() - 0.5) * 90;
+          const ty = node.y + (rng() - 0.5) * 140;
+          const tr = 16 + rng() * 14;
+
+          let blocked = false;
+          if (Math.hypot(tx - tee.x, ty - tee.y) < 110) blocked = true;
+          if (Math.hypot(tx - greenCenter.x, ty - greenCenter.y) < greenRadius + 52) blocked = true;
+          for (let n = 0; n < nodes.length && !blocked; n++) {
+            if (Math.hypot(tx - nodes[n].x, ty - nodes[n].y) < nodes[n].r + tr + 14) blocked = true;
+          }
+          for (let w = 0; w < waters.length && !blocked; w++) {
+            if (Math.hypot(tx - waters[w].x, ty - waters[w].y) < Math.max(waters[w].rx, waters[w].ry) + tr + 10) blocked = true;
+          }
+          if (!blocked) {
+            trees.push({ x: tx, y: ty, r: tr });
+          }
+        }
+
+        // Wind vir hierdie putjie (versterk met elke Loopbaan-golf)
+        const windAngle = rng() * Math.PI * 2;
+        const windSpeed = Math.round(Math.max(2, course.windBase + (rng() - 0.35) * 10 + (waveLevel - 1) * 5.5));
+
+        return {
+          holeNum,
+          par,
+          lengthMeters,
+          tee,
+          nodes,
+          greenCenter,
+          greenRadius,
+          greenSlope,
+          pin,
+          bunkers,
+          waters,
+          trees,
+          windAngle,
+          windSpeed
+        };
+      }
+
+      // =========================================================================
+      // 5. KANVAS, SPELTOESTAND EN OPPERVLAK-OPSPORING
+      // =========================================================================
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      function resizeCanvas() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      const STATE_TITLE = 'TITLE';
+      const STATE_AIMING = 'AIMING';
+      const STATE_CHARGING = 'CHARGING';
+      const STATE_FLYING = 'FLYING';
+      const STATE_HOLE_DONE = 'HOLE_DONE';
+      const STATE_PAUSED = 'PAUSED';
+      const STATE_SUMMARY = 'SUMMARY';
+
+      let gameState = STATE_TITLE;
+      let stateBeforePause = STATE_AIMING;
+
+      // Spel-opstelling
+      let selectedMode = 'quick'; // 'quick', 'career', 'practice'
+      let selectedHolesCount = 4;
+      let selectedCourseKey = 'mogol';
+      let selectedProIndex = 0;
+
+      let activeCourse = COURSES.mogol;
+      let activePro = PRO_PLAYERS[0];
+      let currentHoleIndex = 1;
+      let currentHole = null;
+      let careerWave = 1;
+      let careerPoints = 0;
+
+      let holeStrokes = 0;
+      let roundScores = [];
+      let roundPars = [];
+      let selectedClubIdx = 0;
+
+      // Baltoestand (2.5D: x, y, z + snelhede)
+      const ball = {
+        x: 0, y: 0, z: 0,
+        vx: 0, vy: 0, vz: 0,
+        lastSafeX: 0, lastSafeY: 0,
+        shotStartX: 0, shotStartY: 0,
+        inCup: false,
+        trail: []
+      };
+
+      // Kamera, Mik en Kragmeter
+      const cam = { x: 0, y: 0, zoom: 1, targetZoom: 1, panX: 0, panY: 0, overview: false };
+      let aimAngle = -Math.PI / 2;
+      let powerValue = 0;
+      let powerDir = 1;
+      let chargeSource = null; // 'mouse' of 'ctrl'
+      let holeDoneTimer = 0;
+      let calloutTimer = 0;
+      let animTime = 0;
+
+      const particles = [];
+      const keys = { w: false, a: false, s: false, d: false };
+      const mouse = { x: width * 0.5, y: height * 0.35 };
+
+      // Plaaslike rekords in localStorage
+      const STORAGE_KEY = 'mogol_golf_neon_records_v1';
+      let savedRecords = { bestRelPar: null, bestCareerWave: 0, bestPoints: 0 };
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            savedRecords = Object.assign(savedRecords, parsed);
+          }
+        }
+      } catch (e) {
+        // Ignoreer indien localStorage beperk is
+      }
+
+      function saveRecords() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(savedRecords));
+        } catch (e) {
+          // Ignoreer stilweg
+        }
+      }
+
+      function formatRelPar(diff) {
+        if (diff === 0) return 'E';
+        return diff > 0 ? `+${diff}` : `${diff}`;
+      }
+
+      function pointInEllipse(px, py, ex, ey, rx, ry, rot) {
+        const dx = px - ex;
+        const dy = py - ey;
+        const c = Math.cos(-rot);
+        const s = Math.sin(-rot);
+        const lx = dx * c - dy * s;
+        const ly = dx * s + dy * c;
+        return (lx * lx) / (rx * rx) + (ly * ly) / (ry * ry) <= 1;
+      }
+
+      function getSurfaceAt(x, y) {
+        if (!currentHole) return 'fairway';
+        if (Math.hypot(x - currentHole.greenCenter.x, y - currentHole.greenCenter.y) <= currentHole.greenRadius) {
+          return 'green';
+        }
+        for (let i = 0; i < currentHole.waters.length; i++) {
+          const w = currentHole.waters[i];
+          if (pointInEllipse(x, y, w.x, w.y, w.rx, w.ry, w.rot)) return 'water';
+        }
+        for (let i = 0; i < currentHole.bunkers.length; i++) {
+          const b = currentHole.bunkers[i];
+          if (pointInEllipse(x, y, b.x, b.y, b.rx, b.ry, b.rot)) return 'bunker';
+        }
+        if (Math.hypot(x - currentHole.tee.x, y - currentHole.tee.y) <= 36) {
+          return 'tee';
+        }
+        for (let i = 0; i < currentHole.nodes.length; i++) {
+          const n = currentHole.nodes[i];
+          if (Math.hypot(x - n.x, y - n.y) <= n.r) return 'fairway';
+        }
+        // Kontroleer ook tussenliggende segmente van skoonveld
+        for (let i = 0; i < currentHole.nodes.length - 1; i++) {
+          const a = currentHole.nodes[i];
+          const b = currentHole.nodes[i + 1];
+          const abx = b.x - a.x;
+          const aby = b.y - a.y;
+          const lenSq = abx * abx + aby * aby || 1;
+          const proj = Math.max(0, Math.min(1, ((x - a.x) * abx + (y - a.y) * aby) / lenSq));
+          const cx = a.x + abx * proj;
+          const cy = a.y + aby * proj;
+          const r = a.r + (b.r - a.r) * proj;
+          if (Math.hypot(x - cx, y - cy) <= r) return 'fairway';
+        }
+        return 'rough';
+      }
+
+      function autoSelectClub() {
+        const lie = getSurfaceAt(ball.x, ball.y);
+        const distMeters = Math.hypot(currentHole.pin.x - ball.x, currentHole.pin.y - ball.y) / METER_TO_PX;
+        if (lie === 'green') {
+          selectedClubIdx = 7; // Setstok
+          return;
+        }
+        if (lie === 'bunker' && distMeters < 65) {
+          selectedClubIdx = 6; // Sandwig
+          return;
+        }
+        // Kies beste stok vir afstand
+        let bestIdx = 0;
+        for (let i = 0; i < CLUBS.length - 1; i++) {
+          const effectiveMax = CLUBS[i].maxDist * activePro.power;
+          if (effectiveMax >= distMeters * 0.92) {
+            bestIdx = i;
+          }
+        }
+        selectedClubIdx = bestIdx;
+      }
+
+      function spawnParticles(x, y, color, count, speed = 90) {
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = (0.3 + Math.random() * 0.7) * speed;
+          particles.push({
+            x, y,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            r: 2 + Math.random() * 3.5,
+            color,
+            life: 0.4 + Math.random() * 0.45,
+            maxLife: 0.85
+          });
+        }
+      }
+
+      function showCallout(mainText, subText = '', duration = 2.1, color = '#39ff14') {
+        const banner = document.getElementById('calloutBanner');
+        const mainEl = document.getElementById('calloutMain');
+        const subEl = document.getElementById('calloutSub');
+        mainEl.textContent = mainText;
+        mainEl.style.color = color;
+        subEl.textContent = subText;
+        banner.classList.add('show');
+        calloutTimer = duration;
+      }
+
+      // =========================================================================
+      // 6. SPELVLOEI: BEGIN RONDE, LAAI PUTJIE, SLAAN BAL
+      // =========================================================================
+      function getWaveTargetRelPar(wave) {
+        if (wave === 1) return 4;
+        if (wave === 2) return 2;
+        if (wave === 3) return 0;
+        return Math.max(-4, 2 - wave);
+      }
+
+      function loadHole(holeNum) {
+        currentHoleIndex = holeNum;
+        currentHole = generateHole(activeCourse, holeNum, selectedMode === 'career' ? careerWave : 1);
+        holeStrokes = 0;
+
+        ball.x = currentHole.tee.x;
+        ball.y = currentHole.tee.y;
+        ball.z = 0;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vz = 0;
+        ball.lastSafeX = ball.x;
+        ball.lastSafeY = ball.y;
+        ball.shotStartX = ball.x;
+        ball.shotStartY = ball.y;
+        ball.inCup = false;
+        ball.trail.length = 0;
+
+        aimAngle = Math.atan2(currentHole.pin.y - ball.y, currentHole.pin.x - ball.x);
+        cam.x = ball.x;
+        cam.y = ball.y - 120;
+        cam.panX = 0;
+        cam.panY = 0;
+        cam.overview = false;
+        cam.zoom = 1;
+        cam.targetZoom = 1;
+
+        powerValue = 0;
+        powerDir = 1;
+        chargeSource = null;
+        autoSelectClub();
+        gameState = STATE_AIMING;
+
+        const sub = `${activeCourse.shortName} • ${t('par')} ${currentHole.par} • ${currentHole.lengthMeters}m`;
+        showCallout(`${t('hole').toUpperCase()} ${holeNum}`, sub, 2.0, '#00f3ff');
+        updateHUD();
+      }
+
+      function startGame(keepCareerWave = false) {
+        audio.init();
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+
+        activePro = PRO_PLAYERS[selectedProIndex] || PRO_PLAYERS[0];
+
+        if (selectedMode === 'career') {
+          if (!keepCareerWave) {
+            careerWave = 1;
+            careerPoints = 0;
+          }
+          const courseKeys = Object.keys(COURSES);
+          activeCourse = COURSES[courseKeys[(careerWave - 1) % courseKeys.length]];
+          selectedHolesCount = Math.min(8, 3 + careerWave); // Golf 1 = 4 putjies, Golf 2 = 5, ens.
+        } else {
+          if (selectedCourseKey === 'random') {
+            const ks = Object.keys(COURSES);
+            activeCourse = COURSES[ks[Math.floor(Math.random() * ks.length)]];
+          } else {
+            activeCourse = COURSES[selectedCourseKey] || COURSES.mogol;
+          }
+        }
+
+        roundScores = [];
+        roundPars = [];
+
+        document.getElementById('titleOverlay').classList.add('hidden');
+        document.getElementById('pauseOverlay').classList.add('hidden');
+        document.getElementById('summaryOverlay').classList.add('hidden');
+        document.getElementById('btnResetPractice').style.display = selectedMode === 'practice' ? 'inline-flex' : 'none';
+        document.getElementById('hudWaveWrap').style.display = selectedMode === 'career' ? 'flex' : 'none';
+
+        loadHole(1);
+      }
+
+      function startCharging(source) {
+        if (gameState !== STATE_AIMING) return;
+        audio.init();
+        cam.overview = false;
+        cam.panX = 0;
+        cam.panY = 0;
+        gameState = STATE_CHARGING;
+        chargeSource = source;
+        powerValue = 0.04;
+        powerDir = 1;
+        updateHUD();
+      }
+
+      function releaseShot(source) {
+        if (gameState !== STATE_CHARGING) return;
+        if (source && chargeSource && source !== chargeSource) return;
+
+        const club = CLUBS[selectedClubIdx];
+        const lie = getSurfaceAt(ball.x, ball.y);
+        const pwr = Math.max(0.08, powerValue);
+
+        // Bewaar veilige posisie voor skoot
+        ball.lastSafeX = ball.x;
+        ball.lastSafeY = ball.y;
+        ball.shotStartX = ball.x;
+        ball.shotStartY = ball.y;
+        ball.trail.length = 0;
+
+        holeStrokes++;
+        audio.playSwing(club.sound, pwr);
+
+        // Oppervlak-straf vir ruigte / sandkuil
+        let lieFactor = 1.0;
+        if (lie === 'rough') lieFactor = 0.80;
+        else if (lie === 'bunker') lieFactor = club.id === 6 ? 0.86 : 0.52;
+
+        // Soetkol-bonus tussen 84% en 94%
+        const sweetBonus = (pwr >= 0.84 && pwr <= 0.94) ? 1.04 : 1.0;
+
+        // Akkuraatheid-afwyking gebaseer op 1980's speler se statistiek
+        const accuracyScale = (1 - activePro.accuracy) * 2.2 + (pwr > 0.95 ? 0.045 : 0);
+        const jitter = (Math.random() - 0.5) * club.spread * (1 + accuracyScale * 3.5);
+        const launchAngle = aimAngle + jitter;
+
+        const targetDistPx = club.maxDist * METER_TO_PX * activePro.power * lieFactor * pwr * sweetBonus;
+
+        if (club.isPutter) {
+          // Setwerk: suiwer grondrol op setperk
+          const speed = Math.sqrt(2 * 135 * targetDistPx);
+          ball.vx = Math.cos(launchAngle) * speed;
+          ball.vy = Math.sin(launchAngle) * speed;
+          ball.vz = 0;
+          ball.z = 0;
+        } else {
+          // Paraboliese vlug met lugtyd en opslag
+          const gravity = 420;
+          const carryRatio = 1 - club.roll;
+          const carryPx = targetDistPx * carryRatio;
+          const loftFactor = Math.max(0.24, club.loft);
+          const airTime = Math.max(0.45, Math.sqrt((carryPx * loftFactor * 1.45) / gravity));
+          const horizSpeed = carryPx / airTime;
+          ball.vx = Math.cos(launchAngle) * horizSpeed;
+          ball.vy = Math.sin(launchAngle) * horizSpeed;
+          ball.vz = 0.5 * gravity * airTime;
+          ball.z = 0.5;
+        }
+
+        spawnParticles(ball.x, ball.y, lie === 'bunker' ? '#ffbe0b' : '#39ff14', 10, 85);
+        gameState = STATE_FLYING;
+        chargeSource = null;
+        powerValue = 0;
+        updateHUD();
+      }
+
+      function onBallInCup() {
+        ball.inCup = true;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vz = 0;
+        ball.z = 0;
+        ball.x = currentHole.pin.x;
+        ball.y = currentHole.pin.y;
+
+        audio.playCupDrop();
+        const diff = holeStrokes - currentHole.par;
+        const c = I18N[currentLang].callouts;
+        let label = c.par;
+        let col = '#00f3ff';
+        let celebrate = false;
+
+        if (holeStrokes === 1) { label = c.ace; col = '#ffbe0b'; celebrate = true; }
+        else if (diff <= -2) { label = c.eagle; col = '#ffbe0b'; celebrate = true; }
+        else if (diff === -1) { label = c.birdie; col = '#39ff14'; celebrate = true; }
+        else if (diff === 0) { label = c.par; col = '#00f3ff'; }
+        else if (diff === 1) { label = c.bogey; col = '#ff9f1c'; }
+        else if (diff === 2) { label = c.double; col = '#ff2a55'; }
+        else { label = c.triple; col = '#ff2a55'; }
+
+        audio.playApplause(celebrate);
+        spawnParticles(ball.x, ball.y, col, celebrate ? 36 : 18, celebrate ? 170 : 110);
+        showCallout(label, `${holeStrokes} ${c.strokesWord} (${formatRelPar(diff)})`, 2.4, col);
+
+        if (selectedMode !== 'practice') {
+          roundScores.push(holeStrokes);
+          roundPars.push(currentHole.par);
+          if (selectedMode === 'career') {
+            careerPoints += Math.max(50, (3 - diff) * 150 + careerWave * 50);
+          }
+        }
+
+        gameState = STATE_HOLE_DONE;
+        holeDoneTimer = 2.35;
+        updateHUD();
+      }
+
+      function showRoundSummary() {
+        gameState = STATE_SUMMARY;
+        const totalStrokes = roundScores.reduce((a, b) => a + b, 0);
+        const totalPar = roundPars.reduce((a, b) => a + b, 0);
+        const rel = totalStrokes - totalPar;
+        const c = I18N[currentLang].callouts;
+
+        let isNewRecord = false;
+        if (selectedMode !== 'practice') {
+          if (savedRecords.bestRelPar === null || rel < savedRecords.bestRelPar) {
+            savedRecords.bestRelPar = rel;
+            isNewRecord = true;
+          }
+          if (selectedMode === 'career' && careerWave > savedRecords.bestCareerWave) {
+            savedRecords.bestCareerWave = careerWave;
+            isNewRecord = true;
+          }
+          if (careerPoints > savedRecords.bestPoints) {
+            savedRecords.bestPoints = careerPoints;
+          }
+          saveRecords();
+        }
+
+        const titleEl = document.getElementById('summaryTitle');
+        const subEl = document.getElementById('summarySub');
+        const metaEl = document.getElementById('summaryMeta');
+        const nextBtn = document.getElementById('btnNextWave');
+        const badgeEl = document.getElementById('newRecordBadge');
+
+        badgeEl.style.display = isNewRecord ? 'inline-block' : 'none';
+
+        if (selectedMode === 'career') {
+          const target = getWaveTargetRelPar(careerWave);
+          const passed = rel <= target;
+          titleEl.textContent = passed ? c.waveClear : c.waveFail;
+          subEl.textContent = `${activeCourse.name} • ${t('wave')} ${careerWave}`;
+          metaEl.textContent = passed
+            ? `${c.targetMet} ${careerWave + 1}! (${t('total')}: ${formatRelPar(rel)} | Punte: ${careerPoints})`
+            : `${c.targetMissed} (${t('total')}: ${formatRelPar(rel)} / Teiken: ${formatRelPar(target)})`;
+          nextBtn.style.display = passed ? 'inline-block' : 'none';
+        } else {
+          titleEl.textContent = c.roundDone;
+          subEl.textContent = `${activeCourse.name} • ${activePro.name}`;
+          metaEl.textContent = `${t('strokes')}: ${totalStrokes} | ${t('par')}: ${totalPar} | ${t('total')}: ${formatRelPar(rel)}`;
+          nextBtn.style.display = 'none';
+        }
+
+        // Bou telkaart-tabel
+        const table = document.getElementById('scorecardTable');
+        let html = '<tr><th>' + t('hole') + '</th>';
+        for (let i = 0; i < roundScores.length; i++) html += `<th>${i + 1}</th>`;
+        html += `<th>${t('total')}</th></tr>`;
+
+        html += '<tr><td>' + t('par') + '</td>';
+        for (let i = 0; i < roundPars.length; i++) html += `<td>${roundPars[i]}</td>`;
+        html += `<td><strong>${totalPar}</strong></td></tr>`;
+
+        html += '<tr><td>' + t('strokes') + '</td>';
+        for (let i = 0; i < roundScores.length; i++) {
+          const d = roundScores[i] - roundPars[i];
+          const cls = d < 0 ? 'sc-under' : d === 0 ? 'sc-even' : 'sc-over';
+          html += `<td class="${cls}">${roundScores[i]}</td>`;
+        }
+        const totalCls = rel < 0 ? 'sc-under' : rel === 0 ? 'sc-even' : 'sc-over';
+        html += `<td class="${totalCls}">${totalStrokes} (${formatRelPar(rel)})</td></tr>`;
+        table.innerHTML = html;
+
+        document.getElementById('summaryOverlay').classList.remove('hidden');
+        updateHUD();
+        updateTitleRecords();
+      }
+
+      // =========================================================================
+      // 7. FISIKA-OPDATERING (60 FPS)
+      // =========================================================================
+      function update(dt) {
+        animTime += dt;
+
+        if (calloutTimer > 0) {
+          calloutTimer -= dt;
+          if (calloutTimer <= 0) {
+            document.getElementById('calloutBanner').classList.remove('show');
+          }
+        }
+
+        // Opdateer deeltjies
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.94;
+          p.vy *= 0.94;
+          p.life -= dt;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        if (gameState === STATE_TITLE) {
+          // Sagte agtergrond-beweging op titelskerm
+          cam.x = Math.sin(animTime * 0.25) * 180;
+          cam.y = -320 + Math.cos(animTime * 0.2) * 140;
+          return;
+        }
+
+        if (gameState === STATE_PAUSED || gameState === STATE_SUMMARY) return;
+
+        // WASD kamera-skuif en fyn verstelling
+        const panSpeed = 480 / cam.zoom;
+        if (gameState === STATE_AIMING) {
+          if (keys.w) cam.panY -= panSpeed * dt;
+          if (keys.s) cam.panY += panSpeed * dt;
+          if (keys.a) cam.panX -= panSpeed * dt;
+          if (keys.d) cam.panX += panSpeed * dt;
+          cam.panX = Math.max(-700, Math.min(700, cam.panX));
+          cam.panY = Math.max(-1300, Math.min(600, cam.panY));
+
+          // Muis mik altyd vanaf bal na muisposisie in wêreldkoördinate
+          const worldMouseX = cam.x + (mouse.x - width * 0.5) / cam.zoom;
+          const worldMouseY = cam.y + (mouse.y - height * 0.5) / cam.zoom;
+          if (Math.hypot(worldMouseX - ball.x, worldMouseY - ball.y) > 4) {
+            aimAngle = Math.atan2(worldMouseY - ball.y, worldMouseX - ball.x);
+          }
+        }
+
+        // Kragmeter ossilleer glad tydens laai
+        if (gameState === STATE_CHARGING) {
+          const chargeSpeed = CLUBS[selectedClubIdx].isPutter ? 1.05 : 1.32;
+          powerValue += powerDir * chargeSpeed * dt;
+          if (powerValue >= 1.0) {
+            powerValue = 1.0;
+            powerDir = -1;
+          } else if (powerValue <= 0.05) {
+            powerValue = 0.05;
+            powerDir = 1;
+          }
+          document.getElementById('powerFill').style.width = `${Math.round(powerValue * 100)}%`;
+          document.getElementById('hudPowerPct').textContent = `${Math.round(powerValue * 100)}%`;
+        }
+
+        // Bal-fisika tydens vlug en rol
+        if (gameState === STATE_FLYING) {
+          const gravity = 420;
+          const prevZ = ball.z;
+
+          if (ball.z > 0 || ball.vz > 0) {
+            // Wind-invloed in die lug
+            const windAccel = currentHole.windSpeed * 2.25;
+            ball.vx += Math.cos(currentHole.windAngle) * windAccel * dt;
+            ball.vy += Math.sin(currentHole.windAngle) * windAccel * dt;
+
+            ball.x += ball.vx * dt;
+            ball.y += ball.vy * dt;
+            ball.z += ball.vz * dt;
+            ball.vz -= gravity * dt;
+
+            // Boom-botsing teen lae/middel hoogte
+            if (ball.z < 52) {
+              for (let i = 0; i < currentHole.trees.length; i++) {
+                const tr = currentHole.trees[i];
+                const d = Math.hypot(ball.x - tr.x, ball.y - tr.y);
+                if (d < tr.r * 0.72) {
+                  const nx = (ball.x - tr.x) / (d || 1);
+                  const ny = (ball.y - tr.y) / (d || 1);
+                  ball.x = tr.x + nx * (tr.r * 0.78);
+                  ball.y = tr.y + ny * (tr.r * 0.78);
+                  ball.vx = nx * Math.hypot(ball.vx, ball.vy) * 0.35;
+                  ball.vy = ny * Math.hypot(ball.vx, ball.vy) * 0.35;
+                  ball.vz = Math.min(ball.vz, 30);
+                  audio.playBounce('tree');
+                  spawnParticles(ball.x, ball.y, activeCourse.treeColor, 10, 90);
+                  break;
+                }
+              }
+            }
+
+            // Land op die grond
+            if (ball.z <= 0 && prevZ > 0) {
+              ball.z = 0;
+              const surf = getSurfaceAt(ball.x, ball.y);
+              if (surf === 'water') {
+                handleWaterHazard();
+                return;
+              }
+              audio.playBounce(surf);
+              if (surf === 'bunker') {
+                ball.vx *= 0.18;
+                ball.vy *= 0.18;
+                ball.vz = 0;
+                spawnParticles(ball.x, ball.y, '#ffbe0b', 14, 70);
+              } else if (surf === 'rough') {
+                ball.vx *= 0.48;
+                ball.vy *= 0.48;
+                ball.vz = Math.abs(ball.vz) > 80 ? -ball.vz * 0.25 : 0;
+              } else if (surf === 'green') {
+                ball.vx *= 0.62;
+                ball.vy *= 0.62;
+                ball.vz = Math.abs(ball.vz) > 95 ? -ball.vz * 0.28 : 0;
+              } else {
+                ball.vx *= 0.72;
+                ball.vy *= 0.72;
+                ball.vz = Math.abs(ball.vz) > 75 ? -ball.vz * 0.38 : 0;
+              }
+            }
+          } else {
+            // Grondrol
+            const surf = getSurfaceAt(ball.x, ball.y);
+            if (surf === 'water') {
+              handleWaterHazard();
+              return;
+            }
+
+            // Setperk-helling beïnvloed rol
+            if (surf === 'green') {
+              ball.vx += currentHole.greenSlope.x * dt;
+              ball.vy += currentHole.greenSlope.y * dt;
+            }
+
+            ball.x += ball.vx * dt;
+            ball.y += ball.vy * dt;
+
+            // Grondwrywing volgens oppervlak
+            const friction = surf === 'green' ? 128 : surf === 'fairway' ? 215 : surf === 'bunker' ? 540 : 350;
+            const speed = Math.hypot(ball.vx, ball.vy);
+            if (speed > 0) {
+              const newSpeed = Math.max(0, speed - friction * dt);
+              const ratio = newSpeed / speed;
+              ball.vx *= ratio;
+              ball.vy *= ratio;
+            }
+
+            // Boomstam-botsing op die grond
+            for (let i = 0; i < currentHole.trees.length; i++) {
+              const tr = currentHole.trees[i];
+              const d = Math.hypot(ball.x - tr.x, ball.y - tr.y);
+              if (d < tr.r * 0.48) {
+                const nx = (ball.x - tr.x) / (d || 1);
+                const ny = (ball.y - tr.y) / (d || 1);
+                ball.x = tr.x + nx * (tr.r * 0.52);
+                ball.y = tr.y + ny * (tr.r * 0.52);
+                ball.vx = nx * speed * 0.45;
+                ball.vy = ny * speed * 0.45;
+                audio.playBounce('tree');
+                break;
+              }
+            }
+
+            // Kontroleer of bal in die gat val!
+            const distPin = Math.hypot(ball.x - currentHole.pin.x, ball.y - currentHole.pin.y);
+            if (distPin < 13.5 && speed < 195) {
+              onBallInCup();
+              return;
+            }
+          }
+
+          // Spoor agter die bal
+          ball.trail.push({ x: ball.x, y: ball.y, z: ball.z });
+          if (ball.trail.length > 36) ball.trail.shift();
+
+          // Buite grense-kontrole
+          if (Math.abs(ball.x) > 1500 || ball.y > 420 || ball.y < -(currentHole.lengthMeters * METER_TO_PX + 420)) {
+            handleOutOfBounds();
+            return;
+          }
+
+          // Bal kom tot stilstand
+          if (ball.z <= 0.05 && Math.abs(ball.vz) < 5 && Math.hypot(ball.vx, ball.vy) < 7) {
+            ball.vx = 0;
+            ball.vy = 0;
+            ball.vz = 0;
+            ball.z = 0;
+            gameState = STATE_AIMING;
+            aimAngle = Math.atan2(currentHole.pin.y - ball.y, currentHole.pin.x - ball.x);
+            autoSelectClub();
+            if (selectedMode === 'practice') {
+              const shotDist = Math.round(Math.hypot(ball.x - ball.shotStartX, ball.y - ball.shotStartY) / METER_TO_PX);
+              showCallout(`${shotDist}m`, `${I18N[currentLang].callouts.shotTelemetry} • ${I18N[currentLang].lies[getSurfaceAt(ball.x, ball.y)]}`, 1.6, '#00f3ff');
+            }
+            updateHUD();
+          }
+        }
+
+        if (gameState === STATE_HOLE_DONE) {
+          holeDoneTimer -= dt;
+          if (holeDoneTimer <= 0) {
+            if (selectedMode === 'practice') {
+              loadHole(currentHoleIndex);
+            } else if (currentHoleIndex < selectedHolesCount) {
+              loadHole(currentHoleIndex + 1);
+            } else {
+              showRoundSummary();
+            }
+          }
+        }
+
+        // Gladde kamerabeweging
+        let targetCamX, targetCamY;
+        if (cam.overview) {
+          targetCamX = (ball.x + currentHole.pin.x) * 0.5;
+          targetCamY = (ball.y + currentHole.pin.y) * 0.5;
+          const spanY = Math.abs(currentHole.pin.y - currentHole.tee.y) + 340;
+          cam.targetZoom = Math.max(0.32, Math.min(0.85, (height * 0.78) / spanY));
+        } else {
+          cam.targetZoom = getSurfaceAt(ball.x, ball.y) === 'green' ? 1.45 : 1.0;
+          const lookDist = gameState === STATE_AIMING ? 95 : 0;
+          targetCamX = ball.x + Math.cos(aimAngle) * lookDist + cam.panX;
+          targetCamY = ball.y + Math.sin(aimAngle) * lookDist + cam.panY;
+        }
+
+        cam.x += (targetCamX - cam.x) * Math.min(1, 6.5 * dt);
+        cam.y += (targetCamY - cam.y) * Math.min(1, 6.5 * dt);
+        cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, 6.0 * dt);
+      }
+
+      function handleWaterHazard() {
+        audio.playSplash();
+        spawnParticles(ball.x, ball.y, '#00f3ff', 24, 130);
+        holeStrokes++;
+        showCallout(I18N[currentLang].callouts.water, '', 1.9, '#00f3ff');
+        restoreSafeLie();
+      }
+
+      function handleOutOfBounds() {
+        holeStrokes++;
+        showCallout(I18N[currentLang].callouts.oob, '', 1.9, '#ff2a55');
+        restoreSafeLie();
+      }
+
+      function restoreSafeLie() {
+        ball.x = ball.lastSafeX;
+        ball.y = ball.lastSafeY;
+        ball.z = 0;
+        ball.vx = 0;
+        ball.vy = 0;
+        ball.vz = 0;
+        ball.trail.length = 0;
+        gameState = STATE_AIMING;
+        aimAngle = Math.atan2(currentHole.pin.y - ball.y, currentHole.pin.x - ball.x);
+        autoSelectClub();
+        updateHUD();
+      }
+
+      // =========================================================================
+      // 8. TEKEN-ENJIN (NEON BO-NA-ONDER ARKADE-ESTETIKA)
+      // =========================================================================
+      function render() {
+        ctx.fillStyle = activeCourse.roughBg;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.translate(width * 0.5, height * 0.5);
+        ctx.scale(cam.zoom, cam.zoom);
+        ctx.translate(-cam.x, -cam.y);
+
+        drawNeonGrid();
+
+        if (currentHole) {
+          drawFairwayAndGreen(currentHole);
+          drawHazards(currentHole);
+          drawPin(currentHole);
+          drawTrees(currentHole);
+          drawAimGuide();
+          drawBallAndGolfer();
+        }
+
+        // Deeltjies
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+      }
+
+      function drawNeonGrid() {
+        const step = 90;
+        const halfW = (width * 0.6) / cam.zoom;
+        const halfH = (height * 0.6) / cam.zoom;
+        const startX = Math.floor((cam.x - halfW) / step) * step;
+        const endX = cam.x + halfW + step;
+        const startY = Math.floor((cam.y - halfH) / step) * step;
+        const endY = cam.y + halfH + step;
+
+        ctx.strokeStyle = activeCourse.gridColor;
+        ctx.lineWidth = 1 / cam.zoom;
+        ctx.beginPath();
+        for (let x = startX; x <= endX; x += step) {
+          ctx.moveTo(x, startY);
+          ctx.lineTo(x, endY);
+        }
+        for (let y = startY; y <= endY; y += step) {
+          ctx.moveTo(startX, y);
+          ctx.lineTo(endX, y);
+        }
+        ctx.stroke();
+      }
+
+      function drawFairwayAndGreen(hole) {
+        // Skoonveld-omlyning (neon-gloei)
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        for (let pass = 0; pass < 2; pass++) {
+          ctx.strokeStyle = pass === 0 ? activeCourse.fairwayBorder : activeCourse.fairwayColor;
+          for (let i = 0; i < hole.nodes.length - 1; i++) {
+            const a = hole.nodes[i];
+            const b = hole.nodes[i + 1];
+            ctx.lineWidth = (a.r + b.r) + (pass === 0 ? 5 : 0);
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+
+        // Gestreepte neon-skoonveld lyne vir diepte
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 18;
+        for (let i = 0; i < hole.nodes.length - 1; i++) {
+          const a = hole.nodes[i];
+          const b = hole.nodes[i + 1];
+          const mx = (a.x + b.x) * 0.5;
+          const my = (a.y + b.y) * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(mx - a.r * 0.72, my);
+          ctx.lineTo(mx + a.r * 0.72, my);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Afslaanplek (Tee Box)
+        ctx.fillStyle = '#0f3b2e';
+        ctx.strokeStyle = '#00f3ff';
+        ctx.lineWidth = 2;
+        ctx.fillRect(hole.tee.x - 26, hole.tee.y - 16, 52, 32);
+        ctx.strokeRect(hole.tee.x - 26, hole.tee.y - 16, 52, 32);
+
+        // Tee-merkers
+        ctx.fillStyle = '#ffbe0b';
+        ctx.beginPath();
+        ctx.arc(hole.tee.x - 18, hole.tee.y, 3.5, 0, Math.PI * 2);
+        ctx.arc(hole.tee.x + 18, hole.tee.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Setperk (Green)
+        ctx.fillStyle = activeCourse.greenColor;
+        ctx.strokeStyle = activeCourse.greenBorder;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(hole.greenCenter.x, hole.greenCenter.y, hole.greenRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Helling-rooster op setperk (wys subtiele breek-rigting wanneer op setperk)
+        if (getSurfaceAt(ball.x, ball.y) === 'green' || cam.zoom > 1.15) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(126, 255, 102, 0.28)';
+          ctx.lineWidth = 1.4;
+          const sAng = Math.atan2(hole.greenSlope.y, hole.greenSlope.x);
+          for (let gx = -42; gx <= 42; gx += 28) {
+            for (let gy = -42; gy <= 42; gy += 28) {
+              if (Math.hypot(gx, gy) > hole.greenRadius - 14) continue;
+              const px = hole.greenCenter.x + gx;
+              const py = hole.greenCenter.y + gy;
+              ctx.beginPath();
+              ctx.moveTo(px - Math.cos(sAng) * 6, py - Math.sin(sAng) * 6);
+              ctx.lineTo(px + Math.cos(sAng) * 6, py + Math.sin(sAng) * 6);
+              ctx.stroke();
+            }
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawHazards(hole) {
+        // Waterhindernisse met animerende neon-rimpels
+        for (let i = 0; i < hole.waters.length; i++) {
+          const w = hole.waters[i];
+          ctx.save();
+          ctx.translate(w.x, w.y);
+          ctx.rotate(w.rot);
+          ctx.fillStyle = 'rgba(0, 120, 210, 0.42)';
+          ctx.strokeStyle = activeCourse.waterColor;
+          ctx.lineWidth = 2.6;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w.rx, w.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          const pulse = 0.65 + Math.sin(animTime * 2.2 + i) * 0.12;
+          ctx.strokeStyle = 'rgba(0, 243, 255, 0.35)';
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, w.rx * pulse, w.ry * pulse, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Sandkuile (Bunkers)
+        for (let i = 0; i < hole.bunkers.length; i++) {
+          const b = hole.bunkers[i];
+          ctx.save();
+          ctx.translate(b.x, b.y);
+          ctx.rotate(b.rot);
+          ctx.fillStyle = 'rgba(245, 183, 0, 0.28)';
+          ctx.strokeStyle = activeCourse.bunkerColor;
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawPin(hole) {
+        // Gat
+        ctx.fillStyle = '#02040a';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(hole.pin.x, hole.pin.y, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Neon vlagpaal & wapperende vlag
+        const wave = Math.sin(animTime * 6) * 3;
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(hole.pin.x, hole.pin.y);
+        ctx.lineTo(hole.pin.x, hole.pin.y - 34);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ff00aa';
+        ctx.beginPath();
+        ctx.moveTo(hole.pin.x, hole.pin.y - 34);
+        ctx.lineTo(hole.pin.x + 22, hole.pin.y - 27 + wave);
+        ctx.lineTo(hole.pin.x, hole.pin.y - 20);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawTrees(hole) {
+        for (let i = 0; i < hole.trees.length; i++) {
+          const tr = hole.trees[i];
+          // Skaduwee
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          ctx.beginPath();
+          ctx.arc(tr.x + 7, tr.y + 8, tr.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Kroon
+          ctx.fillStyle = '#092420';
+          ctx.strokeStyle = activeCourse.treeColor;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(tr.x, tr.y, tr.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = activeCourse.treeColor;
+          ctx.globalAlpha = 0.25;
+          ctx.beginPath();
+          ctx.arc(tr.x - tr.r * 0.2, tr.y - tr.r * 0.2, tr.r * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      function drawAimGuide() {
+        if (gameState !== STATE_AIMING && gameState !== STATE_CHARGING) return;
+        const club = CLUBS[selectedClubIdx];
+        const previewPower = gameState === STATE_CHARGING ? powerValue : 0.88;
+        const distPx = club.maxDist * METER_TO_PX * activePro.power * previewPower;
+        const endX = ball.x + Math.cos(aimAngle) * distPx;
+        const endY = ball.y + Math.sin(aimAngle) * distPx;
+
+        ctx.save();
+        ctx.strokeStyle = gameState === STATE_CHARGING ? '#ffbe0b' : 'rgba(0, 243, 255, 0.85)';
+        ctx.lineWidth = 2.2 / cam.zoom;
+        ctx.setLineDash([10 / cam.zoom, 7 / cam.zoom]);
+        ctx.beginPath();
+        ctx.moveTo(ball.x, ball.y);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Teiken-landingsirkel
+        ctx.strokeStyle = gameState === STATE_CHARGING ? '#39ff14' : '#00f3ff';
+        ctx.lineWidth = 2 / cam.zoom;
+        ctx.beginPath();
+        ctx.arc(endX, endY, 12 / cam.zoom, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Afstand-etiket by landingspunt
+        const m = Math.round(distPx / METER_TO_PX);
+        ctx.font = `900 ${Math.round(13 / cam.zoom)}px system-ui, sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${m}m`, endX, endY - 18 / cam.zoom);
+        ctx.restore();
+      }
+
+      function drawBallAndGolfer() {
+        // Speler-silhoeët langs die bal wanneer gereed om te slaan
+        if (gameState === STATE_AIMING || gameState === STATE_CHARGING) {
+          const perp = aimAngle - Math.PI * 0.5;
+          const gx = ball.x + Math.cos(perp) * 18;
+          const gy = ball.y + Math.sin(perp) * 18;
+          ctx.save();
+          ctx.translate(gx, gy);
+          ctx.rotate(aimAngle);
+
+          // Skouers (bo-na-onder gholfspeler)
+          ctx.fillStyle = activePro.color;
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 6.5, 11, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Kop/pet
+          ctx.fillStyle = '#070d1e';
+          ctx.beginPath();
+          ctx.arc(1, 0, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = activePro.color;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Bal-spoor
+        if (ball.trail.length > 1) {
+          ctx.save();
+          for (let i = 1; i < ball.trail.length; i++) {
+            const a = ball.trail[i - 1];
+            const b = ball.trail[i];
+            ctx.strokeStyle = activePro.color;
+            ctx.globalAlpha = (i / ball.trail.length) * 0.65;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y - a.z * 0.38);
+            ctx.lineTo(b.x, b.y - b.z * 0.38);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        if (ball.inCup) return;
+
+        // Bal-skaduwee op grond
+        const shadowScale = Math.max(0.5, 1 - ball.z * 0.004);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.48)';
+        ctx.beginPath();
+        ctx.arc(ball.x + ball.z * 0.14, ball.y + ball.z * 0.14 + 3, 4.5 * shadowScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Gholfbal (skaal effens groter hoog in die lug)
+        const visualY = ball.y - ball.z * 0.38;
+        const radius = 4.6 + Math.min(4.2, ball.z * 0.032);
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = activePro.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(ball.x, visualY, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // =========================================================================
+      // 9. HUD & TAAL-OPDATERING
+      // =========================================================================
+      function applyLanguage(lang) {
+        currentLang = I18N[lang] ? lang : 'af';
+        document.documentElement.lang = currentLang;
+        document.getElementById('hudLang').value = currentLang;
+        document.getElementById('titleLang').value = currentLang;
+
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const key = el.getAttribute('data-i18n');
+          if (I18N[currentLang][key]) {
+            el.textContent = I18N[currentLang][key];
+          }
+        });
+
+        updateModeDesc();
+        updateProStats();
+        updateHUD();
+      }
+
+      function updateModeDesc() {
+        const el = document.getElementById('modeDesc');
+        if (selectedMode === 'quick') el.textContent = t('modeDescQuick');
+        else if (selectedMode === 'career') el.textContent = t('modeDescCareer');
+        else el.textContent = t('modeDescPractice');
+      }
+
+      function updateProStats() {
+        const pro = PRO_PLAYERS[selectedProIndex] || PRO_PLAYERS[0];
+        document.getElementById('proStats').innerHTML =
+          `<span style="color:${pro.color}; font-weight:800;">${pro.title}</span>` +
+          `<span>${t('pwr')}: ${Math.round(pro.power * 90)} | ${t('acc')}: ${Math.round(pro.accuracy * 100)} | ${t('put')}: ${Math.round(pro.putting * 100)}</span>`;
+      }
+
+      function updateCourseDesc() {
+        const key = document.getElementById('courseSelect').value;
+        const el = document.getElementById('courseDesc');
+        el.textContent = key === 'random' ? t('randomCourse') : (COURSES[key] ? COURSES[key].desc : '');
+      }
+
+      function updateTitleRecords() {
+        const recStr = savedRecords.bestRelPar !== null
+          ? `${formatRelPar(savedRecords.bestRelPar)}${savedRecords.bestCareerWave > 0 ? ' • ' + t('wave') + ' ' + savedRecords.bestCareerWave : ''}`
+          : '--';
+        document.getElementById('titleBestText').textContent = recStr;
+        document.getElementById('hudBest').textContent = savedRecords.bestRelPar !== null ? formatRelPar(savedRecords.bestRelPar) : '--';
+      }
+
+      function updateHUD() {
+        if (currentHole) {
+          document.getElementById('hudHole').textContent = selectedMode === 'practice'
+            ? `${currentHoleIndex}`
+            : `${currentHoleIndex}/${selectedHolesCount}`;
+          document.getElementById('hudPar').textContent = currentHole.par;
+          document.getElementById('hudStrokes').textContent = holeStrokes;
+
+          const pastStrokes = roundScores.reduce((a, b) => a + b, 0);
+          const pastPars = roundPars.reduce((a, b) => a + b, 0);
+          document.getElementById('hudTotal').textContent = formatRelPar(pastStrokes - pastPars);
+
+          const distM = Math.round(Math.hypot(currentHole.pin.x - ball.x, currentHole.pin.y - ball.y) / METER_TO_PX);
+          document.getElementById('hudDist').textContent = `${distM}m`;
+
+          document.getElementById('hudWind').textContent = `${currentHole.windSpeed} km/h`;
+          const windDeg = (currentHole.windAngle * 180) / Math.PI + 90;
+          document.getElementById('windArrow').style.transform = `rotate(${windDeg}deg)`;
+        }
+
+        const club = CLUBS[selectedClubIdx];
+        const clubName = I18N[currentLang].clubs[selectedClubIdx];
+        const lieKey = getSurfaceAt(ball.x, ball.y);
+        const lieLabel = I18N[currentLang].lies[lieKey] || lieKey;
+        const maxM = Math.round(club.maxDist * activePro.power);
+        document.getElementById('hudClubName').textContent = clubName;
+        document.getElementById('hudClubMeta').textContent = `${t('max')}: ${maxM}m • ${lieLabel}`;
+
+        document.getElementById('hudPowerLbl').textContent = gameState === STATE_CHARGING ? t('charging') : t('powerPrompt');
+        if (gameState !== STATE_CHARGING) {
+          document.getElementById('powerFill').style.width = '0%';
+          document.getElementById('hudPowerPct').textContent = '0%';
+        }
+
+        document.getElementById('hudCourseName').textContent = activeCourse.shortName;
+        document.getElementById('hudPlayerName').textContent = activePro.name.split(' (')[0];
+        document.getElementById('hudWave').textContent = careerWave;
+        document.getElementById('btnOverview').textContent = t('overview');
+        document.getElementById('btnOverview').classList.toggle('active', cam.overview);
+        document.getElementById('btnResetPractice').textContent = t('resetBall');
+        document.getElementById('btnSound').textContent = audio.enabled ? t('soundOn') : t('soundOff');
+        updateTitleRecords();
+      }
+
+      // =========================================================================
+      // 10. INVOER-LUISTERAARS (WASDXY, MUIS, KLIK/CTRL, SPASIE, P, M, R)
+      // =========================================================================
+      function cycleClub(delta) {
+        if (gameState !== STATE_AIMING) return;
+        selectedClubIdx = (selectedClubIdx + delta + CLUBS.length) % CLUBS.length;
+        updateHUD();
+      }
+
+      function togglePause() {
+        if (gameState === STATE_PAUSED) {
+          gameState = stateBeforePause;
+          document.getElementById('pauseOverlay').classList.add('hidden');
+        } else if (gameState === STATE_AIMING || gameState === STATE_FLYING || gameState === STATE_CHARGING) {
+          stateBeforePause = gameState === STATE_CHARGING ? STATE_AIMING : gameState;
+          chargeSource = null;
+          powerValue = 0;
+          gameState = STATE_PAUSED;
+          document.getElementById('pauseOverlay').classList.remove('hidden');
+        }
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyW' || e.code === 'ArrowUp') { keys.w = true; if (e.ctrlKey) e.preventDefault(); }
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.a = true; if (e.ctrlKey) e.preventDefault(); }
+        if (e.code === 'KeyS' || e.code === 'ArrowDown') { keys.s = true; if (e.ctrlKey) e.preventDefault(); }
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') { keys.d = true; if (e.ctrlKey) e.preventDefault(); }
+
+        if (e.code === 'KeyX' && !e.repeat) cycleClub(1);
+        if (e.code === 'KeyY' && !e.repeat) cycleClub(-1);
+
+        if ((e.key === 'Control' || e.code === 'ControlLeft' || e.code === 'ControlRight') && !e.repeat) {
+          if (gameState === STATE_AIMING) {
+            e.preventDefault();
+            startCharging('ctrl');
+          }
+        }
+
+        if (e.code === 'Space' && !e.repeat) {
+          if (gameState === STATE_AIMING || gameState === STATE_FLYING) {
+            e.preventDefault();
+            cam.overview = !cam.overview;
+            cam.panX = 0;
+            cam.panY = 0;
+            updateHUD();
+          }
+        }
+
+        if (e.code === 'KeyR' && !e.repeat) {
+          if (gameState === STATE_AIMING) {
+            if (selectedMode === 'practice') {
+              restoreSafeLie();
+              showCallout(I18N[currentLang].callouts.practiceReset, '', 1.2, '#00f3ff');
+            } else {
+              cam.panX = 0;
+              cam.panY = 0;
+              cam.overview = false;
+              updateHUD();
+            }
+          }
+        }
+
+        if ((e.code === 'KeyP' || e.code === 'Escape') && !e.repeat) {
+          togglePause();
+        }
+
+        if (e.code === 'KeyM' && !e.repeat) {
+          audio.enabled = !audio.enabled;
+          updateHUD();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = false;
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = false;
+        if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = false;
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false;
+
+        if (e.key === 'Control' || e.code === 'ControlLeft' || e.code === 'ControlRight') {
+          if (gameState === STATE_CHARGING && chargeSource === 'ctrl') {
+            releaseShot('ctrl');
+          }
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+      });
+
+      canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 0 && gameState === STATE_AIMING) {
+          startCharging('mouse');
+        }
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 0 && gameState === STATE_CHARGING && chargeSource === 'mouse') {
+          releaseShot('mouse');
+        }
+      });
+
+      window.addEventListener('blur', () => {
+        keys.w = keys.a = keys.s = keys.d = false;
+        if (gameState === STATE_CHARGING) {
+          gameState = STATE_AIMING;
+          chargeSource = null;
+          powerValue = 0;
+          updateHUD();
+        }
+      });
+
+      // UI-knoppies & Kieslys-opstelling
+      const proSelect = document.getElementById('proSelect');
+      PRO_PLAYERS.forEach((p, idx) => {
+        const opt = document.createElement('option');
+        opt.value = String(idx);
+        opt.textContent = p.name;
+        proSelect.appendChild(opt);
+      });
+
+      proSelect.addEventListener('change', (e) => {
+        selectedProIndex = parseInt(e.target.value, 10) || 0;
+        updateProStats();
+      });
+
+      document.getElementById('courseSelect').addEventListener('change', (e) => {
+        selectedCourseKey = e.target.value;
+        updateCourseDesc();
+      });
+
+      document.querySelectorAll('#modeGroup .pill-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#modeGroup .pill-btn').forEach((b) => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedMode = btn.getAttribute('data-mode');
+          updateModeDesc();
+        });
+      });
+
+      document.querySelectorAll('#holesGroup .pill-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#holesGroup .pill-btn').forEach((b) => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedHolesCount = parseInt(btn.getAttribute('data-holes'), 10) || 4;
+        });
+      });
+
+      document.getElementById('titleLang').addEventListener('change', (e) => applyLanguage(e.target.value));
+      document.getElementById('hudLang').addEventListener('change', (e) => applyLanguage(e.target.value));
+
+      document.getElementById('btnStartGame').addEventListener('click', () => startGame(false));
+      document.getElementById('btnClubPrev').addEventListener('click', () => cycleClub(-1));
+      document.getElementById('btnClubNext').addEventListener('click', () => cycleClub(1));
+      document.getElementById('btnOverview').addEventListener('click', () => {
+        if (gameState === STATE_AIMING || gameState === STATE_FLYING) {
+          cam.overview = !cam.overview;
+          cam.panX = 0;
+          cam.panY = 0;
+          updateHUD();
+        }
+      });
+      document.getElementById('btnResetPractice').addEventListener('click', () => {
+        if (selectedMode === 'practice' && gameState === STATE_AIMING) {
+          restoreSafeLie();
+          showCallout(I18N[currentLang].callouts.practiceReset, '', 1.2, '#00f3ff');
+        }
+      });
+      document.getElementById('btnSound').addEventListener('click', () => {
+        audio.enabled = !audio.enabled;
+        updateHUD();
+      });
+      document.getElementById('btnPause').addEventListener('click', togglePause);
+      document.getElementById('btnResume').addEventListener('click', togglePause);
+
+      function returnToMenu() {
+        gameState = STATE_TITLE;
+        document.getElementById('pauseOverlay').classList.add('hidden');
+        document.getElementById('summaryOverlay').classList.add('hidden');
+        document.getElementById('titleOverlay').classList.remove('hidden');
+        updateTitleRecords();
+      }
+
+      document.getElementById('btnQuitToMenu').addEventListener('click', returnToMenu);
+      document.getElementById('btnSummaryMenu').addEventListener('click', returnToMenu);
+      document.getElementById('btnPlayAgain').addEventListener('click', () => startGame(false));
+      document.getElementById('btnNextWave').addEventListener('click', () => {
+        careerWave++;
+        startGame(true);
+      });
+
+      // =========================================================================
+      // 11. HOOF-ANIMASIELUS
+      // =========================================================================
+      let lastTs = 0;
+      function loop(ts) {
+        if (!lastTs) lastTs = ts;
+        const dt = Math.min(0.05, (ts - lastTs) / 1000);
+        lastTs = ts;
+        update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      // Inisialiseer titelskerm-agtergrond met Putjie 1 van Mogol Golfklub
+      currentHole = generateHole(COURSES.mogol, 1, 1);
+      updateCourseDesc();
+      applyLanguage('af');
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
