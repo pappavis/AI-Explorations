@@ -175,7 +175,7 @@ En jy mag uiteraard soek na skills en vaardighede wat jou hierby kan help, en la
 
 
 # Externe skakels
-1. <a https://aiarcade.games/?utm_source=chatgpt.com>aiarcade.games</a>
+1. <a href="https://aiarcade.games/?utm_source=chatgpt.com">aiarcade.games</a>
 2. <a href="http://phaser.io">Phaser</a> open source spel biblioteek
 
 
