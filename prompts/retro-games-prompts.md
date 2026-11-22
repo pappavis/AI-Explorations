@@ -100,6 +100,34 @@ Before outputting code play it yourself and fix all bugs.
 ```
 
 
+## Commando 64 versie 1.0.0
+
+```
+You have 40 years web development experience. Build a complete single-file HTML5 canvas game in index.html called "Commando 64 Gemma4"
+I want an exact replica of the commodore 64 game located on /Volumes/data1/AI_Gerelateerd/github/commando_ai/src/unpacked_commando.prg . When you have questions use your web search skill.
+You may use external libraries such as 3d.js, http://phaser.io wtc.
+Before eyou start coding watch a Commodore 64 Commando playthourgh on YouTube watch th full episode. Then describe the full gameplay experience, and use the gameplay experience in your game design, then translate the game design to code. Then check that your design and execution 100%match the original game routines.
+Then give your review to an external reviewer to sanity check, and implement his fixes in your code and proceed in TDD ref/green phase until your code matches aesactly as given to you as example.
+
+Do not ask me any questions. Before you deliver the final result, test play it yourself, when any bugs arise fix them, and output the complete index.html to chat, and presnt it as a downloadable file.
+You must embed the original assets in the index.html, use the sound routines and assets in the game code.
+
+Make it fast and polished.
+When the game starts, or a game ends show an 'attract demo' demonstrating the gameplay for about 15 seconds, which a user can interrupt to start a game.
+
+you may include embed external open source libraries such as phaser,io in the code
+include comments in the html5 code to an AI so it can rebuild or fix any errors and include comments as https://github.com/pappavis/AI-Explorations/ as the home repo.
+Everything in one index.html, no external files or network.
+
+The game controls with both wand and arrow keys, q or ctrl-key to shoot space launch bombs or grenades.
+
+Do not stop to ask confirmations. DO not pause.
+Do not give any other output other than the index.html.
+Your only response is the downloadable index.html. 
+```
+
+
+
 # 🎮 KODEKLOPPER AI — RETRO GAME FACTORY
 
 ```
