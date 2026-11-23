@@ -17,6 +17,9 @@ Stel jou voor jy kyk **reguit van bo af (voëlperspektief / top-down)** op ’n 
 * Sodra jy die vesting bereik, skuif die ysterhek oop en stroom ’n laaste golf vyande uit. Wanneer jy almal verslaan het, is die vlak gewen en beweeg jy aan na die volgende, moeiliker gebied.
 * Die speletjie voel **vinnig, gespanne en direk**: één raakskoot of botsing kos jou ’n lewe, maar jou masjiengeweer vuur blitsvinnig en jou handgranate kan hindernisse oorspring om hele groepe vyande uit te wis.
 
+
+<img src="https://i.ytimg.com/vi/ZkC7yqlHOD0/sddefault.jpg" width="40%" hieght="40%">
+
 ---
 
 ## 2. Visuele Identiteit en Skermargitektuur (Commodore 64 VIC-II)
