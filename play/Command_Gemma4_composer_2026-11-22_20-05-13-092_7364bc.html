@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMMANDO 64</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --c64-blue: #40318d;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            border: 4px solid #9f9f9f;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        canvas {
+            display: block;
+            background-color: #000000;
+            image-rendering: pixelated; /* Skakel beeldgladmaking af */
+            width: 800px; /* Skalering vir die skerm */
+            height: 600px;
+        }
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 18px;
+            background: #000000;
+            border-bottom: 1px solid #7869c4;
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        .btn {
+            pointer-events: auto;
+            padding: 10px 20px;
+            background: #883932;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1.2rem;
+        }
+        .btn:hover { background: #bfce72; color: #000; }
+        .hidden { display: none !important; }
+        #crt-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            background-size: 100% 4px, 3px 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="hud">
+            <span>1UP <span id="score">000000</span></span>
+            <span style="margin-left: 20px;">HI <span id="high-score">000000</span></span>
+            <span style="margin-left: 20px;">VLAK: <span id="level">1</span></span>
+            <span style="margin-left: 20px;">GR: <span id="grenades">6</span></span>
+            <span style="margin-left: 20px;">LEWENS: <span id="lives">3</span></span>
+        </div>
+        <canvas id="gameCanvas" width="320" height="200"></canvas>
+        <div id="crt-effect"></div>
+        <div id="overlay">
+            <h1 id="title">COMMANDO 64</h1>
+            <p id="desc">DRUK SPASIE OM TE BEGIN</p>
+            <button id="start-btn" class="btn">BEGIN</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * COMMANDO 64 - Meesterprompt Implementasie
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+// --- KONSTANTES ---
+const PALETTE = {
+    0: '#000000', 1: '#ffffff', 2: '#883932', 3: '#67b6bd',
+    4: '#8b3f96', 5: '#55a049', 6: '#40318d', 7: '#bfce72',
+    8: '#8b5429', 9: '#574200', A: '#b86962', B: '#505050',
+    C: '#787878', D: '#94e089', E: '#7869c4', F: '#9f9f9f'
+};
+
+const STAGE_LEN = 1880;
+const PLAYER_SPEED = 1.2;
+const BULLET_SPEED = 3.5;
+const GRENADE_SPEED = 2.5;
+
+// --- DATA STRUKTURE ---
+let gameState = 'TITLE'; // TITLE, DEMO, PLAYING, PAUSED, LEVEL_COMPLETE, GAMEOVER
+let score = 0;
+let highScore = localStorage.getItem('c64_commando_high') || 0;
+let lives = 3;
+let level = 1;
+let grenades = 6;
+let camY = STAGE_LEN - 200;
+let frameCount = 0;
+
+const player = {
+    x: 160, y: 180,
+    vx: 0, vy: 0,
+    angle: 0,
+    hp: 1,
+    invuln: 0,
+    sprite: null
+};
+
+let bullets = [];
+let enemies = [];
+let particles = [];
+let obstacles = [];
+let groundGuns = [];
+let clouds = [];
+
+// --- SPRITE GENERATOR ---
+function createSprite(w, h, color, name) {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = w;
+    offscreen.height = h;
+    const octx = offscreen.getContext('2d');
+    octx.fillStyle = color;
+    octx.fillRect(0, 0, w, h);
+    return { canvas: offscreen, ctx: octx, w, h };
+}
+
+const sprites = {
+    player: createSprite(12, 14, PALETTE[5], 'player'),
+    enemy: createSprite(12, 14, PALETTE[6], 'enemy'),
+    bunker: createSprite(20, 6, PALETTE[8], 'bunker'),
+    grenade: createSprite(8, 8, PALETTE[2], 'grenade'),
+    helicopter: createSprite(30, 11, PALETTE[3], 'heli'),
+    bridge: createSprite(48, 8, PALETTE[8], 'bridge'),
+    gate: createSprite(64, 12, PALETTE[2], 'gate')
+};
+
+// --- AUDIO ENGINE ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq, type, duration, vol) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+function playM60() { playTone(440, 'square', 0.1, 0.1); }
+function playGrenade() { playTone(200, 'sawtooth', 0.5, 0.2); }
+function playExplosion() { playTone(100, 'triangle', 0.4, 0.3); }
+
+// --- LEVELS & TERREIN ---
+function initLevel(lvl) {
+    obstacles = [];
+    enemies = [];
+    groundGuns = [];
+    
+    // Grondpad (Simpel loop)
+    for(let i=0; i<STAGE_LEN; i+=40) {
+        if(i % 120 === 0) obstacles.push({type: 'rock', x: i, y: 150, w: 20, h: 20});
+        if(i % 240 === 0) obstacles.push({type: 'bunker', x: i, y: 140, w: 40, h: 10});
+        if(i % 400 === 0) obstacles.push({type: 'palm', x: i, y: 100, w: 10, h: 80});
+    }
+
+    // Riviere & Brûe
+    const riverY = 140;
+    obstacles.push({type: 'river', x: 0, y: riverY, w: 320, h: 20});
+    obstacles.push({type: 'bridge', x: 100, y: riverY, w: 120, h: 10});
+
+    // Vestinghek aan die einde
+    obstacles.push({type: 'gate', x: 0, y: STAGE_LEN - 100, w: 320, h: 20});
+
+    // Vyande
+    for(let i=0; i<10 + lvl*2; i++) {
+        enemies.push({
+            x: Math.random() * 320,
+            y: 100 + Math.random() * 1000,
+            type: Math.random() > 0.7 ? 'heavy' : 'scout',
+            hp: 2,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2
+        });
+    }
+    
+    // Ground Guns
+    for(let i=0; i<3; i++) {
+        groundGuns.push({x: Math.random()*320, y: Math.random()*STAGE_LEN, timer: 0});
+    }
+}
+
+// --- GAME LOGIC ---
+function update() {
+    if (gameState !== 'PLAYING') return;
+
+    frameCount++;
+    
+    // Player Movement
+    if (keys['KeyW']) { player.vy -= PLAYER_SPEED; player.angle -= 0.05; }
+    if (keys['KeyS']) { player.vy += PLAYER_SPEED; player.angle += 0.05; }
+    if (keys['KeyA']) { player.vx -= PLAYER_SPEED; player.angle += 0.05; }
+    if (keys['KeyD']) { player.vx += PLAYER_SPEED; player.angle -= 0.05; }
+
+    player.x += player.vx;
+    player.y += player.vy;
+    player.vx *= 0.9;
+    player.vy *= 0.9;
+    if (player.invuln > 0) player.invuln--;
+
+    // Camera Scroll (One-way Upwards)
+    if (player.y > camY + 120) {
+        camY -= (player.y - (camY + 120)) * 0.1;
+    }
+
+    // Bullets
+    bullets.forEach((b, i) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        b.life--;
+        if (b.life <= 0) bullets.splice(i, 1);
+    });
+
+    // Enemies
+    enemies.forEach((en, i) => {
+        en.x += en.vx;
+        en.y += en.vy;
+        if (en.x < 0 || en.x > 320) en.vx *= -1;
+        
+        // Collision with bullets
+        bullets.forEach((b, bi) => {
+            if (Math.hypot(en.x - b.x, en.y - b.y) < 15) {
+                en.hp--;
+                bullets.splice(bi, 1);
+                if (en.hp <= 0) {
+                    enemies.splice(i, 1);
+                    score += (en.type === 'heavy' ? 500 : 300);
+                    playExplosion();
+                    updateHUD();
+                }
+            }
+        });
+
+        // Collision with player
+        if (player.invuln === 0 && Math.hypot(en.x - player.x, en.y - player.y) < 20) {
+            die();
+        }
+    });
+
+    // Ground Guns
+    groundGuns.forEach(g => {
+        g.timer++;
+        if (g.timer % 60 === 0) {
+            let angle = Math.atan2(player.y - g.y, player.x - g.x);
+            bullets.push({x: g.x, y: g.y, vx: Math.cos(angle)*2, vy: Math.sin(angle)*2, life: 60});
+        }
+    });
+
+    // Goal Check
+    if (player.y > STAGE_LEN - 120 && player.y < STAGE_LEN - 80) {
+        if (enemies.length === 0) {
+            gameState = 'LEVEL_COMPLETE';
+            setTimeout(() => {
+                level++;
+                initLevel(level);
+                gameState = 'PLAYING';
+                player.x = 160; player.y = 180;
+            }, 2000);
+        }
+    }
+
+    // Particles
+    particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+    });
+
+    if (gameState === 'DEMO') {
+        if (frameCount > 450) gameState = 'PLAYING';
+    }
+}
+
+function die() {
+    lives--;
+    playExplosion();
+    updateHUD();
+    if (lives <= 0) {
+        gameState = 'GAMEOVER';
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('c64_commando_high', highScore);
+        }
+        document.getElementById('high-score').innerText = highScore.toString().padStart(6, '0');
+    } else {
+        player.invuln = 60;
+        player.x = 160;
+        player.y = 180;
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, 320, 200);
+    ctx.save();
+    ctx.translate(0, -camY);
+
+    // Draw Terrain
+    obstacles.forEach(o => {
+        if (o.type === 'river') {
+            ctx.fillStyle = PALETTE[6];
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+        } else if (o.type === 'bridge') {
+            ctx.fillStyle = PALETTE[8];
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+        } else if (o.type === 'rock') {
+            ctx.fillStyle = PALETTE[B];
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+        } else if (o.type === 'bunker') {
+            ctx.fillStyle = PALETTE[8];
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+        } else if (o.type === 'palm') {
+            ctx.fillStyle = PALETTE[9]; // Trunk
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+            ctx.fillStyle = PALETTE[5]; // Leaves (visual only)
+            ctx.fillRect(o.x - 10, o.y - 10, o.w + 20, 10);
+        } else if (o.type === 'gate') {
+            ctx.fillStyle = PALETTE[2];
+            ctx.fillRect(o.x, o.y, o.w, o.h);
+        }
+    });
+
+    // Enemies
+    enemies.forEach(en => {
+        ctx.fillStyle = en.type === 'heavy' ? PALETTE[6] : PALETTE[2];
+        ctx.fillRect(en.x, en.y, 12, 14);
+    });
+
+    // Bullets
+    bullets.forEach(b => {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(b.x, b.y, 2, 2);
+    });
+
+    // Particles
+    particles.forEach(p => {
+        ctx.fillStyle = `rgba(${p.c}, ${p.c}, ${p.c}, ${p.life/30})`;
+        ctx.fillRect(p.x, p.y, 2, 2);
+    });
+
+    // Player
+    if (player.invuln % 10 < 5) {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        ctx.rotate(player.angle);
+        ctx.fillStyle = PALETTE[5];
+        ctx.fillRect(-6, -7, 12, 14); // Simplified sprite
+        ctx.restore();
+    }
+
+    ctx.restore();
+
+    if (gameState === 'TITLE') {
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Courier New';
+        ctx.fillText("COMMANDO 64", 110, 100);
+        ctx.fillText("DRUK SPASIE OM TE BEGIN", 80, 140);
+    } else if (gameState === 'DEMO') {
+        ctx.fillStyle = '#fff';
+        ctx.fillText("DEMO (15s) - DRUK SLEUTEL", 70, 180);
+    } else if (gameState === 'LEVEL_COMPLETE') {
+        ctx.fillStyle = '#fff';
+        ctx.fillText("VESTING VEROORWIN!", 90, 100);
+    } else if (gameState === 'GAMEOVER') {
+        ctx.fillStyle = '#fff';
+        ctx.fillText("SPEL VERBY", 130, 100);
+        ctx.fillText("SKOOR: " + score, 110, 130);
+    }
+
+    requestAnimationFrame(() => {
+        update();
+        draw();
+    });
+}
+
+// --- INPUTS ---
+const keys = {};
+window.onkeydown = e => {
+    keys[e.code] = true;
+    if (e.code === 'Space' && gameState === 'PLAYING' && grenades > 0) {
+        grenades--;
+        bullets.push({x: player.x, y: player.y, vx: Math.cos(player.angle)*GRENADE_SPEED, vy: Math.sin(player.angle)*GRENADE_SPEED, life: 100});
+        playGrenade();
+    }
+    if (e.code === 'KeyP' || e.code === 'Escape') {
+        gameState = (gameState === 'PAUSED') ? 'PLAYING' : 'PAUSED';
+    }
+    if (e.code === 'KeyM') {
+        audioCtx.state === 'suspended' ? audioCtx.resume() : audioCtx.suspend();
+    }
+};
+window.onkeyup = e => keys[e.code] = false;
+window.onmousedown = e => {
+    if (gameState === 'PLAYING') {
+        let angle = Math.atan2(e.clientY - 300, e.clientX - 400); // Rough mouse angle
+        bullets.push({x: player.x, y: player.y, vx: Math.cos(angle)*BULLET_SPEED, vy: Math.sin(angle)*BULLET_SPEED, life: 60});
+        playM60();
+    }
+};
+
+function updateHUD() {
+    document.getElementById('score').innerText = score.toString().padStart(6, '0');
+    document.getElementById('high-score').innerText = highScore.toString().padStart(6, '0');
+    document.getElementById('level').innerText = level;
+    document.getElementById('grenades').innerText = grenades;
+    document.getElementById('lives').innerText = lives;
+}
+
+// --- START ---
+startBtn.onclick = () => {
+    overlay.classList.add('hidden');
+    gameState = 'DEMO';
+    initLevel(1);
+    draw();
+};
+
+// TDD Suite for verification
+function runTddSuite() {
+    console.log("Running TDD Suite...");
+    // 1. Check Resolution
+    console.assert(canvas.width === 320 && canvas.height === 200, "Resolution Correct");
+    // 2. Check Palette
+    console.assert(PALETTE[5] === '#55a049', "Green Palette Correct");
+    // 3. Check Initial Grenades
+    console.assert(grenades === 6, "Grenades Initialized");
+    // 4. Check Camera logic
+    console.assert(camY < STAGE_LEN, "Camera Initialized");
+    console.log("TDD Suite Complete.");
+}
+
+runTddSuite();
+</script>
+</body>
+</html>

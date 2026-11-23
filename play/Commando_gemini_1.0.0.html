@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="af">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>COMMANDO 64 — Outentieke Commodore 64 Arkade (Afrikaans)</title>
+  <!--
+    ===========================================================================
+    COMMANDO 64 — OUTENTIEKE COMMODORE 64 HERSKEPPING (ENKEL-LÊER HTML5)
+    ===========================================================================
+    Taal            : 100% Afrikaans
+    Resolusie       : 320x200 logiese VIC-II piksels (image-rendering: pixelated)
+    Palet           : Outentieke 16-kleur Commodore 64 Pepto-palet
+    Klank           : 3-stem MOS 6581 SID Web Audio API sintetiseerder (geen eksterne lêers)
+    Argitektuur     : Geïsoleerde IIFE met duidelike seksies [A] tot [I]:
+      [A] VIC-II Palet & Ingeboude Piksel-Sprites (Offscreen Canvas rasterisering)
+      [B] MOS 6581 SID 3-Stem Klank- en Musiekenjin
+      [C] Kernkonstantes, Speltoestande & localStorage Top-5 Rekordtabel
+      [D] Deterministiese Vlakbouer (mulberry32) & Spelmeganika
+      [E] 60 FPS Simulasie-opdatering (KI, Koeëls, Granate, Vestinghek-klimaks)
+      [F] Outentieke 320x200 VIC-II Teken-enjin (Dieptelaag-volgorde & HUD)
+      [G] Invoerhantering (Sleutelbord, Muis, Aanraakskerm & Kopbalk)
+      [H] Ingeboude 7-Kontrole TDD-Verifikasiepakket (runTddSuite)
+      [I] Hoof-Animasielus & Opstart (window.onload)
+    ===========================================================================
+  -->
+  <style>
+    :root {
+      /* Outentieke 16-Kleur Commodore 64 VIC-II Palet (Pepto) */
+      --c64-black:  #000000;
+      --c64-white:  #ffffff;
+      --c64-red:    #883932;
+      --c64-cyan:   #67b6bd;
+      --c64-purple: #8b3f96;
+      --c64-green:  #55a049;
+      --c64-blue:   #40318d;
+      --c64-yellow: #bfce72;
+      --c64-orange: #8b5429;
+      --c64-brown:  #574200;
+      --c64-lred:   #b86962;
+      --c64-dgrey:  #505050;
+      --c64-mgrey:  #787878;
+      --c64-lgreen: #94e089;
+      --c64-lblue:  #7869c4;
+      --c64-lgrey:  #9f9f9f;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #12101a;
+      color: var(--c64-white);
+      font-family: "Courier New", Courier, monospace;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Commodore 1702 CRT-Monitor Raam */
+    #monitor {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 1120px;
+      max-height: 780px;
+      display: flex;
+      flex-direction: column;
+      background: #23202d;
+      border: 6px solid var(--c64-blue);
+      border-radius: 14px;
+      box-shadow:
+        0 0 0 2px var(--c64-lblue),
+        0 18px 50px rgba(0, 0, 0, 0.85),
+        inset 0 0 24px rgba(0, 0, 0, 0.75);
+      overflow: hidden;
+    }
+
+    #topBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.42rem 0.75rem;
+      background: #1b1738;
+      border-bottom: 3px solid var(--c64-lblue);
+      flex-wrap: wrap;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 900;
+      font-size: 0.88rem;
+      letter-spacing: 1.5px;
+      color: var(--c64-yellow);
+    }
+
+    .c64-pill {
+      background: var(--c64-red);
+      color: var(--c64-white);
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--c64-yellow);
+    }
+
+    .bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.38rem;
+      flex-wrap: wrap;
+    }
+
+    .c64-btn {
+      background: #100e26;
+      color: var(--c64-lgreen);
+      border: 2px solid var(--c64-lblue);
+      border-radius: 6px;
+      padding: 0.25rem 0.52rem;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+
+    .c64-btn:hover {
+      background: #272059;
+      border-color: var(--c64-cyan);
+      color: var(--c64-white);
+    }
+
+    .c64-btn.active {
+      border-color: var(--c64-yellow);
+      color: var(--c64-yellow);
+    }
+
+    .c64-btn.pass {
+      border-color: var(--c64-lgreen);
+      color: var(--c64-lgreen);
+    }
+
+    /* 320x200 VIC-II Skermhouer */
+    #screenWrap {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      background: var(--c64-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+      cursor: crosshair;
+    }
+
+    /* Outentieke CRT Skanderingslyne & Vignet */
+    #crtOverlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 0, 0, 0.26) 3px,
+        rgba(0, 0, 0, 0.26) 4px
+      );
+      box-shadow: inset 0 0 65px rgba(0, 0, 0, 0.6);
+    }
+
+    #crtOverlay.off {
+      display: none;
+    }
+
+    /* TDD-Verifikasie Modaal */
+    #tddModal {
+      position: absolute;
+      inset: 14px;
+      background: rgba(16, 12, 40, 0.96);
+      border: 3px solid var(--c64-cyan);
+      border-radius: 10px;
+      padding: 14px 16px;
+      z-index: 30;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    #tddModal.open {
+      display: flex;
+    }
+
+    #tddHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--c64-blue);
+      padding-bottom: 6px;
+      color: var(--c64-yellow);
+      font-weight: 900;
+    }
+
+    .tdd-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(120, 105, 196, 0.25);
+      padding: 3px 0;
+    }
+
+    .tdd-pass { color: var(--c64-lgreen); font-weight: 900; }
+    .tdd-fail { color: var(--c64-lred); font-weight: 900; }
+
+    /* Onderste Beheer-Legende */
+    #bottomBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      padding: 0.36rem 0.75rem;
+      background: #14112b;
+      border-top: 2px solid var(--c64-blue);
+      font-size: 0.72rem;
+      color: var(--c64-yellow);
+      flex-wrap: wrap;
+      z-index: 20;
+    }
+
+    .key-cap {
+      display: inline-block;
+      background: #2b2363;
+      border: 1px solid var(--c64-lblue);
+      color: var(--c64-white);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 800;
+      margin-right: 4px;
+    }
+
+    /* Aanraakbeheer vir Mobiele & Tablette */
+    #touchControls {
+      display: none;
+      position: absolute;
+      inset: auto 0 10px 0;
+      padding: 0 14px;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 18;
+    }
+
+    .touch-dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(3, 44px);
+      gap: 4px;
+      pointer-events: auto;
+    }
+
+    .touch-btns {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .t-btn {
+      background: rgba(20, 16, 52, 0.78);
+      border: 2px solid var(--c64-cyan);
+      color: var(--c64-white);
+      border-radius: 10px;
+      font-family: inherit;
+      font-weight: 900;
+      font-size: 0.74rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    .t-btn.round {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+    }
+
+    .t-btn.gren {
+      border-color: var(--c64-yellow);
+      color: var(--c64-yellow);
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      #touchControls { display: flex; }
+      #bottomBar { display: none; }
+    }
+
+    @media (max-width: 680px) {
+      #monitor { border-width: 3px; border-radius: 0; max-height: 100vh; }
+      .brand { font-size: 0.76rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="monitor">
+    <div id="topBar">
+      <div class="brand">
+        <span class="c64-pill">C64</span>
+        <span>COMMANDO 64</span>
+      </div>
+      <div class="bar-actions">
+        <button id="btnStart" class="c64-btn">SPEEL</button>
+        <button id="btnDemo" class="c64-btn">DEMO</button>
+        <button id="btnPause" class="c64-btn">POUSE</button>
+        <button id="btnSid" class="c64-btn active">SID: AAN</button>
+        <button id="btnCrt" class="c64-btn active">CRT: AAN</button>
+        <button id="btnTdd" class="c64-btn pass">TDD: ...</button>
+      </div>
+    </div>
+
+    <div id="screenWrap">
+      <canvas id="gameCanvas" width="320" height="200"></canvas>
+      <div id="crtOverlay"></div>
+
+      <div id="tddModal" role="dialog" aria-label="TDD-Verifikasieverslag">
+        <div id="tddHeader">
+          <span>COMMANDO 64 — TDD ROOI/GROEN VERIFIKASIEPAKKET</span>
+          <button id="btnCloseTdd" class="c64-btn">SLUIT</button>
+        </div>
+        <div id="tddBody"></div>
+      </div>
+
+      <div id="touchControls">
+        <div class="touch-dpad">
+          <div></div><button class="t-btn" data-dir="up">▲</button><div></div>
+          <button class="t-btn" data-dir="left">◄</button><div></div><button class="t-btn" data-dir="right">►</button>
+          <div></div><button class="t-btn" data-dir="down">▼</button><div></div>
+        </div>
+        <div class="touch-btns">
+          <button class="t-btn round" id="tFire">VUUR</button>
+          <button class="t-btn round gren" id="tGren">GRANAAT</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bottomBar">
+      <div>
+        <span class="key-cap">WASD / ▲▼◄►</span>Beweeg
+        &nbsp;
+        <span class="key-cap">Q / CTRL / KLIK</span>M60 Vuur
+        &nbsp;
+        <span class="key-cap">SPASIE / R-KLIK</span>Granaat
+        &nbsp;
+        <span class="key-cap">P</span>Pouse
+        &nbsp;
+        <span class="key-cap">M</span>Klank
+        &nbsp;
+        <span class="key-cap">C</span>CRT
+      </div>
+      <div>COMMODORE 64 • 1985 ARKADE-HULDEBLYK (AFRIKAANS)</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =======================================================================
+         [A] OUTENTIEKE 16-KLEUR COMMODORE 64 PALET (PEPTO) & PIKSEL-SPRITES
+         =======================================================================
+         Elke sprite word eenmalig by opstart na 'n buiteskerm-doek gerasteriseer
+         sodat die spel teen 60 FPS loop sonder geheue-oorskot per raam.
+         ======================================================================= */
+      const VIC = {
+        '0': '#000000', // Swart
+        '1': '#ffffff', // Wit
+        '2': '#883932', // Rooi
+        '3': '#67b6bd', // Siaan
+        '4': '#8b3f96', // Pers
+        '5': '#55a049', // Groen
+        '6': '#40318d', // Blou
+        '7': '#bfce72', // Geel
+        '8': '#8b5429', // Oranje
+        '9': '#574200', // Bruin
+        'A': '#b86962', // Ligrooi / Vel
+        'B': '#505050', // Donkergrys
+        'C': '#787878', // Mediumgrys
+        'D': '#94e089', // Liggroen
+        'E': '#7869c4', // Ligblou
+        'F': '#9f9f9f'  // Liggrys
+      };
+
+      function buildSprite(rows, remap) {
+        const h = rows.length;
+        const w = rows[0].length;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const g = c.getContext('2d');
+        for (let y = 0; y < h; y++) {
+          const line = rows[y];
+          for (let x = 0; x < w; x++) {
+            const ch = line[x];
+            if (ch === '.' || ch === ' ') continue;
+            const key = (remap && remap[ch]) || ch;
+            g.fillStyle = VIC[key] || VIC['1'];
+            g.fillRect(x, y, 1, 1);
+          }
+        }
+        return c;
+      }
+
+      // Super Joe (Groen uniform, rooi kopband, M60 masjiengeweer)
+      const JOE_UP_1 = [
+        '....9999....',
+        '...922229...',
+        '...9AAAA9...',
+        '....AAAA....',
+        '..55DDDD55..',
+        '.55D5555D55.',
+        '.AA55DD55AA.',
+        '.AA.5555.01.',
+        '....5555.01.',
+        '...55..55...',
+        '...55..55...',
+        '...99..55...',
+        '...99.......',
+        '............'
+      ];
+      const JOE_UP_2 = [
+        '....9999....',
+        '...922229...',
+        '...9AAAA9...',
+        '....AAAA....',
+        '..55DDDD55..',
+        '.55D5555D55.',
+        '.AA55DD55AA.',
+        '.01.5555.AA.',
+        '.01.5555....',
+        '...55..55...',
+        '...55..55...',
+        '...55..99...',
+        '.......99...',
+        '............'
+      ];
+      const JOE_SIDE_1 = [
+        '....9999....',
+        '...922229...',
+        '...9AAAA9...',
+        '....AAAA....',
+        '...55DD55...',
+        '..55D55D0011',
+        '..AA5555BB00',
+        '...A5555....',
+        '...55..55...',
+        '..55....55..',
+        '..99....55..',
+        '........99..',
+        '............',
+        '............'
+      ];
+      const JOE_SIDE_2 = [
+        '....9999....',
+        '...922229...',
+        '...9AAAA9...',
+        '....AAAA....',
+        '...55DD55...',
+        '..55D55D0011',
+        '..AA5555BB00',
+        '...A5555....',
+        '....5555....',
+        '...55..55...',
+        '...99..99...',
+        '............',
+        '............',
+        '............'
+      ];
+
+      // Vyandelike Infanterie-Soldaat (Blou uniform & grys helm)
+      const ENEMY_1 = [
+        '....BBBB....',
+        '...BCCCCB...',
+        '...BAAAA0...',
+        '....AAAA....',
+        '..66EEEE66..',
+        '.66E6666E66.',
+        '.AA66BB66AA.',
+        '....6666.01.',
+        '...66..6601.',
+        '...66..66...',
+        '...00..66...',
+        '...00.......',
+        '............',
+        '............'
+      ];
+      const ENEMY_2 = [
+        '....BBBB....',
+        '...BCCCCB...',
+        '...BAAAA0...',
+        '....AAAA....',
+        '..66EEEE66..',
+        '.66E6666E66.',
+        '.AA66BB66AA.',
+        '.01.6666....',
+        '.0166..66...',
+        '...66..66...',
+        '...66..00...',
+        '.......00...',
+        '............',
+        '............'
+      ];
+
+      // Sandsak-Loopgraaf (20x6)
+      const SANDBAG_BMP = [
+        '..8888..8888..8888..',
+        '.877778877778877778.',
+        '.899998899998899998.',
+        '88777788777788777788',
+        '89999999999999999998',
+        '.999999999999999999.'
+      ];
+
+      // Palmboom (Geskei in stam + blaredak vir outentieke diepte-lae)
+      const TREE_TRUNK_BMP = [
+        '.....9889.....',
+        '.....9889.....',
+        '.....9889.....',
+        '....998899....',
+        '...99999999...'
+      ];
+      const TREE_CANOPY_BMP = [
+        '.....5555.....',
+        '...55DDDD55...',
+        '..5DD5555DD5..',
+        '.5D55DDDD55D5.',
+        '555DD5555DD555',
+        '.55555DD55555.',
+        '..5559999555..',
+        '....598895....'
+      ];
+
+      // Soliede Rots
+      const ROCK_BMP = [
+        '....BBBBBB....',
+        '..BBCCCCCCBB..',
+        '.BCCFFFFFFCCB.',
+        'BCFFCCCCCCFFCB',
+        'BCCCCCCCCCCCCB',
+        'BCCCBBBBBBCCCB',
+        '.BBBBBBBBBBBB.',
+        '..0000000000..'
+      ];
+
+      // Krygsgevangene (P.O.W.)
+      const POW_BMP = [
+        '....7777....',
+        '...7AAAA7...',
+        '....AAAA....',
+        '...111111...',
+        '..A117711A..',
+        '..A111111A..',
+        '....1111....',
+        '...11..11...',
+        '...99..99...'
+      ];
+
+      // Flitsende Granaatkis (2 rame)
+      const CRATE_1 = [
+        '9999999999',
+        '9888888889',
+        '9877777789',
+        '9875555789',
+        '9875DD5789',
+        '9875555789',
+        '9877777789',
+        '9999999999'
+      ];
+      const CRATE_2 = [
+        '1111111111',
+        '1777777771',
+        '17FFFFFF71',
+        '17F5555F71',
+        '17F5DD5F71',
+        '17F5555F71',
+        '17FFFFFF71',
+        '1111111111'
+      ];
+
+      // Motorfiets-Patrollie (16x7)
+      const BIKE_BMP = [
+        '....0000........',
+        '...0B22B0..66...',
+        '..0BB22BB066AA..',
+        '.00112222221100.',
+        '0BBBB222222BBBB0',
+        '.0000....0000...',
+        '..00......00....'
+      ];
+
+      // Pantser-Jeep (16x8)
+      const JEEP_BMP = [
+        '..000000000000..',
+        '.0BBBB5555BBBB0.',
+        '0BB555DDDD555BB0',
+        '0B555D3333D555B0',
+        '0B555555555555B0',
+        '0BB5552222555BB0',
+        '.0BBBB5555BBBB0.',
+        '..0000....0000..'
+      ];
+
+      // Vlak 1 Inleidings-Helikopter (30x11)
+      const CHOPPER_BMP = [
+        '..........0000000000..........',
+        '............001100............',
+        '........00005555550000........',
+        '......005555DDDDDD555500......',
+        '0000005555DD333333DD555500....',
+        '0555555555DD331133DD5555550...',
+        '0000005555DDDDDDDDDD555500....',
+        '......005555555555555500......',
+        '........00000000000000........',
+        '......00..............00......',
+        '....0000000000000000000000....'
+      ];
+
+      const SPRITES = {
+        joeUp: [buildSprite(JOE_UP_1), buildSprite(JOE_UP_2)],
+        joeSide: [buildSprite(JOE_SIDE_1), buildSprite(JOE_SIDE_2)],
+        enemyRifle: [buildSprite(ENEMY_1), buildSprite(ENEMY_2)],
+        enemyGren: [
+          buildSprite(ENEMY_1, { '6': '2', E: 'A' }),
+          buildSprite(ENEMY_2, { '6': '2', E: 'A' })
+        ],
+        enemyOfficer: [
+          buildSprite(ENEMY_1, { '6': '7', E: '1', B: '2', C: 'A' }),
+          buildSprite(ENEMY_2, { '6': '7', E: '1', B: '2', C: 'A' })
+        ],
+        sandbag: buildSprite(SANDBAG_BMP),
+        treeTrunk: buildSprite(TREE_TRUNK_BMP),
+        treeCanopy: buildSprite(TREE_CANOPY_BMP),
+        rock: buildSprite(ROCK_BMP),
+        pow: buildSprite(POW_BMP),
+        crate: [buildSprite(CRATE_1), buildSprite(CRATE_2)],
+        bike: buildSprite(BIKE_BMP),
+        jeep: buildSprite(JEEP_BMP),
+        chopper: buildSprite(CHOPPER_BMP)
+      };
+
+      /* =======================================================================
+         [B] MOS 6581 SID 3-STEM SINTETISEERDER (WEB AUDIO API)
+         =======================================================================
+         Stem 1: Saagtandgolf militêre mars-baslyn (64 stappe @ 118ms)
+         Stem 2: Vierkantgolf heroïese 8-bis hoofmelodie
+         Stem 3: Witruis perkussie & klankeffekte (skote, ontploffing, bonus, dood)
+         ======================================================================= */
+      class Sid6581Engine {
+        constructor() {
+          this.ctx = null;
+          this.noiseBuf = null;
+          this.enabled = true;
+          this.playing = false;
+          this.step = 0;
+          this.timer = null;
+        }
+
+        init() {
+          try {
+            if (!this.ctx) {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              if (!AC) return;
+              this.ctx = new AC();
+              const len = Math.floor(this.ctx.sampleRate * 0.6);
+              this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+              const d = this.noiseBuf.getChannelData(0);
+              for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+            }
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+          } catch (e) { /* Blaaier-beleid tot eerste klik/sleutel */ }
+        }
+
+        midiToHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+        startMusic() {
+          this.init();
+          if (this.playing) return;
+          this.playing = true;
+
+          const bass = [
+            40,40,52,40, 40,52,43,45, 40,40,52,40, 47,45,43,42,
+            40,40,52,40, 40,52,43,45, 47,47,59,47, 45,45,43,42,
+            38,38,50,38, 38,50,41,43, 38,38,50,38, 45,43,41,40,
+            45,45,57,45, 47,47,59,47, 48,48,60,48, 47,47,45,43
+          ];
+          const lead = [
+            64,0,64,67, 69,0,67,64, 62,0,64,0, 59,0,0,0,
+            64,0,64,67, 71,0,69,67, 66,0,67,69, 71,0,0,0,
+            62,0,62,65, 67,0,65,62, 60,0,62,0, 57,0,0,0,
+            64,67,69,71, 72,0,71,69, 71,0,69,67, 64,0,0,0
+          ];
+
+          this.timer = setInterval(() => {
+            if (!this.enabled || !this.ctx || this.ctx.state !== 'running') return;
+            if (gameState !== ST_PLAY && gameState !== ST_DEMO && gameState !== ST_TITLE) return;
+            const now = this.ctx.currentTime;
+            const idx = this.step % bass.length;
+
+            // Stem 1: Saagtand Bas
+            const b = bass[idx];
+            if (b) {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'sawtooth';
+              osc.frequency.setValueAtTime(this.midiToHz(b), now);
+              g.gain.setValueAtTime(0.052, now);
+              g.gain.exponentialRampToValueAtTime(0.002, now + 0.105);
+              osc.connect(g); g.connect(this.ctx.destination);
+              osc.start(now); osc.stop(now + 0.115);
+            }
+
+            // Stem 2: Vierkant Hoofmelodie
+            const l = lead[idx];
+            if (l) {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'square';
+              osc.frequency.setValueAtTime(this.midiToHz(l), now);
+              g.gain.setValueAtTime(0.038, now);
+              g.gain.exponentialRampToValueAtTime(0.002, now + 0.13);
+              osc.connect(g); g.connect(this.ctx.destination);
+              osc.start(now); osc.stop(now + 0.14);
+            }
+
+            // Stem 3: Militêre Tromslae (Witruis)
+            if (this.noiseBuf && (idx % 4 === 2 || idx % 8 === 7)) {
+              const src = this.ctx.createBufferSource();
+              src.buffer = this.noiseBuf;
+              const f = this.ctx.createBiquadFilter();
+              f.type = 'bandpass';
+              f.frequency.setValueAtTime(idx % 4 === 2 ? 2200 : 4200, now);
+              const g = this.ctx.createGain();
+              g.gain.setValueAtTime(idx % 4 === 2 ? 0.04 : 0.02, now);
+              g.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+              src.connect(f); f.connect(g); g.connect(this.ctx.destination);
+              src.start(now); src.stop(now + 0.06);
+            }
+            this.step++;
+          }, 118);
+        }
+
+        sfxShoot(enemy) {
+          if (!this.enabled || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(enemy ? 390 : 720, now);
+            osc.frequency.exponentialRampToValueAtTime(85, now + 0.05);
+            g.gain.setValueAtTime(enemy ? 0.045 : 0.085, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(now); osc.stop(now + 0.06);
+          } catch (e) { /* Ignoreer klankfout */ }
+        }
+
+        sfxExplosion() {
+          if (!this.enabled || !this.ctx || !this.noiseBuf) return;
+          try {
+            const now = this.ctx.currentTime;
+            const src = this.ctx.createBufferSource();
+            src.buffer = this.noiseBuf;
+            const f = this.ctx.createBiquadFilter();
+            f.type = 'lowpass';
+            f.frequency.setValueAtTime(580, now);
+            f.frequency.exponentialRampToValueAtTime(65, now + 0.36);
+            const g = this.ctx.createGain();
+            g.gain.setValueAtTime(0.24, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+            src.connect(f); f.connect(g); g.connect(this.ctx.destination);
+            src.start(now); src.stop(now + 0.39);
+          } catch (e) { /* Ignoreer klankfout */ }
+        }
+
+        sfxBonus() {
+          if (!this.enabled || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            [523, 659, 784, 1046].forEach((hz, i) => {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'square';
+              osc.frequency.setValueAtTime(hz, now + i * 0.055);
+              g.gain.setValueAtTime(0.075, now + i * 0.055);
+              g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.055 + 0.08);
+              osc.connect(g); g.connect(this.ctx.destination);
+              osc.start(now + i * 0.055); osc.stop(now + i * 0.055 + 0.09);
+            });
+          } catch (e) { /* Ignoreer klankfout */ }
+        }
+
+        sfxDeath() {
+          if (!this.enabled || !this.ctx) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(360, now);
+            osc.frequency.exponentialRampToValueAtTime(52, now + 0.45);
+            g.gain.setValueAtTime(0.14, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.47);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(now); osc.stop(now + 0.48);
+          } catch (e) { /* Ignoreer klankfout */ }
+        }
+      }
+
+      const sid = new Sid6581Engine();
+
+      /* =======================================================================
+         [C] KERNKONSTANTES, 6-TOESTAND MASJIEN & TOP-5 REKORDTABEL
+         ======================================================================= */
+      const W = 320;
+      const H = 200;
+      const HUD_H = 18;
+      const STAGE_LEN = 1880;
+      const ATTRACT_DURATION = 15.0; // Presies 15 sekondes aantrek-demo
+
+      const SCORE_SOLDIER = 300;
+      const SCORE_GRENADIER = 500;
+      const SCORE_VEHICLE = 500;
+      const SCORE_CRATE = 1000;
+      const SCORE_POW = 2000;
+      const SCORE_OFFICER = 2000;
+
+      // 6 Eksplisiete Speltoestande
+      const ST_TITLE = 'TITELSKERM';
+      const ST_DEMO = 'AANTREK_DEMO';
+      const ST_PLAY = 'AKTIEWE_SPEL';
+      const ST_PAUSE = 'GEPOUSEER';
+      const ST_CLEAR = 'VLAK_VOLTOOI';
+      const ST_OVER = 'SPEL_VERBY';
+
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+
+      // 3 Visuele Temas (uitsluitlik C64 Pepto-kleure)
+      const STAGE_THEMES = [
+        { name: 'BUITEPOS', bg: VIC['8'], alt: VIC['9'], road: VIC['7'], wall: VIC['C'], water: VIC['6'] },
+        { name: 'KLOOF',    bg: VIC['9'], alt: VIC['8'], road: VIC['F'], wall: VIC['2'], water: VIC['3'] },
+        { name: 'SITADEL',  bg: VIC['B'], alt: VIC['C'], road: VIC['F'], wall: VIC['6'], water: VIC['6'] }
+      ];
+
+      // Top-5 Rekordtabel in localStorage
+      const HI_KEY = 'commando_64_af_rekords_v1';
+      let highScores = [
+        { name: 'JOE', score: 24500 },
+        { name: 'ROB', score: 16200 },
+        { name: 'C64', score: 11800 },
+        { name: 'AAS', score: 7500 },
+        { name: 'KOM', score: 3600 }
+      ];
+      try {
+        const saved = localStorage.getItem(HI_KEY);
+        if (saved) {
+          const arr = JSON.parse(saved);
+          if (Array.isArray(arr) && arr.length) highScores = arr;
+        }
+      } catch (e) { /* Ignoreer stoorbeperkings */ }
+
+      function recordHighScore(sc) {
+        if (sc <= 0) return false;
+        const isTop = sc > highScores[0].score;
+        highScores.push({ name: 'JY!', score: sc });
+        highScores.sort((a, b) => b.score - a.score);
+        highScores = highScores.slice(0, 5);
+        try { localStorage.setItem(HI_KEY, JSON.stringify(highScores)); } catch (e) { /* Ignoreer */ }
+        return isTop;
+      }
+
+      // Speltoestand-veranderlikes
+      let gameState = ST_TITLE;
+      let prevState = ST_PLAY;
+      let crtOn = true;
+      let globalTime = 0;
+      let stateTimer = 0;
+
+      let score = 0;
+      let nextExtraLife = 10000;
+      let lives = 3;
+      let stageNum = 1;
+      let grenadesLeft = 6;
+      let newRecordFlag = false;
+
+      let camY = STAGE_LEN - H;
+      let shakeTimer = 0;
+      let bannerText = '';
+      let bannerColor = VIC['7'];
+      let bannerTimer = 0;
+      let stageClearTimer = 0;
+
+      // Vestinghek-klimaks toestand
+      let fortressActive = false;
+      let fortressSpawned = 0;
+      let fortressTotal = 10;
+      let fortressSpawnCd = 0;
+      let gateOpen = 0;
+
+      // Vlak 1 Helikopter-inleiding
+      const chopper = { active: false, x: -40, y: STAGE_LEN - 48, phase: 0 };
+
+      // Speler (Super Joe)
+      const player = {
+        x: W / 2, y: STAGE_LEN - 36,
+        dx: 0, dy: -1,
+        anim: 0,
+        fireCd: 0,
+        grenCd: 0,
+        invuln: 0,
+        deadTimer: 0
+      };
+
+      // Wêreld-entiteite
+      let obstacles = [];
+      let rivers = [];
+      let crates = [];
+      let pows = [];
+      let enemies = [];
+      let bullets = [];
+      let grenades = [];
+      let explosions = [];
+      let impacts = [];
+      let popups = [];
+      let vehicleCd = 4.5;
+
+      // Invoertoestand
+      const keys = {};
+      let mouseFire = false;
+      const touchDirs = { up: false, down: false, left: false, right: false };
+      let touchFire = false;
+
+      /* =======================================================================
+         [D] DETERMINISTIESE VLAKBOUER (mulberry32) & SPELMEGANIKA
+         ======================================================================= */
+      function mulberry32(seed) {
+        let a = seed >>> 0;
+        return function () {
+          a |= 0; a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function showBanner(msg, color, dur) {
+        bannerText = msg;
+        bannerColor = color || VIC['7'];
+        bannerTimer = dur || 2.0;
+      }
+
+      function addPopup(x, y, text, color) {
+        popups.push({ x, y, text, color: color || VIC['7'], life: 1.0 });
+      }
+
+      function addScore(pts) {
+        score += pts;
+        if (score >= nextExtraLife) {
+          lives++;
+          nextExtraLife += 20000;
+          sid.sfxBonus();
+          showBanner('1UP! EKSTRA LEWE!', VIC['D'], 1.8);
+        }
+      }
+
+      function buildStage(num) {
+        const rng = mulberry32(1985 + num * 211);
+        obstacles = [];
+        rivers = [];
+        crates = [];
+        pows = [];
+        enemies = [];
+        bullets = [];
+        grenades = [];
+        explosions = [];
+        impacts = [];
+        popups = [];
+
+        fortressActive = false;
+        fortressSpawned = 0;
+        fortressTotal = 10 + Math.min(12, num * 3);
+        fortressSpawnCd = 0;
+        gateOpen = 0;
+        vehicleCd = 4.2;
+
+        // Boonste Vestingmure met Sentrale Hek-opening (x: 128..192)
+        obstacles.push({ x: 0, y: 74, w: 128, h: 24, type: 'wall' });
+        obstacles.push({ x: 192, y: 74, w: 128, h: 24, type: 'wall' });
+
+        // 2 Horisontale Riviere met Houtbrûe (48px wyd)
+        const riverYs = [Math.floor(STAGE_LEN * 0.67), Math.floor(STAGE_LEN * 0.34)];
+        riverYs.forEach((ry) => {
+          const bx = 68 + Math.floor(rng() * 140);
+          rivers.push({ y: ry, h: 36, bridgeX: bx, bridgeW: 48 });
+        });
+
+        // Vul Slagveld van Onder tot by Vesting
+        for (let y = STAGE_LEN - 140; y > 142; y -= 58) {
+          if (rivers.some((r) => y > r.y - 26 && y < r.y + r.h + 26)) continue;
+
+          // Palmbome & Rotse
+          const cnt = 2 + Math.floor(rng() * 2);
+          for (let i = 0; i < cnt; i++) {
+            const ox = 16 + Math.floor(rng() * (W - 44));
+            const oy = y + Math.floor((rng() - 0.5) * 24);
+            const isRock = rng() > 0.58;
+            obstacles.push({
+              x: ox, y: oy,
+              w: 14,
+              h: isRock ? 8 : 13,
+              type: isRock ? 'rock' : 'tree'
+            });
+          }
+
+          // Sandsak-Loopgraaf + Loopgraaf-Skutter
+          if (rng() < 0.45) {
+            const sx = 36 + Math.floor(rng() * (W - 96));
+            obstacles.push({ x: sx, y: y - 10, w: 20, h: 6, type: 'sandbag' });
+            enemies.push({
+              x: sx + 10, y: y - 18,
+              vx: 0, vy: 0,
+              type: 'bunker',
+              hp: 1,
+              fireCd: 0.9 + rng() * 1.1,
+              anim: 0,
+              aiTimer: 0
+            });
+          }
+
+          // Flitsende Granaatkis
+          if (rng() < 0.24) {
+            crates.push({ x: 30 + Math.floor(rng() * (W - 60)), y: y, collected: false });
+          }
+
+          // Krygsgevangene / P.O.W. (2 000 punte)
+          if (rng() < 0.16 && pows.length < 3) {
+            pows.push({
+              x: 44 + Math.floor(rng() * (W - 88)),
+              y: y - 6,
+              saved: false,
+              runDir: rng() > 0.5 ? 1 : -1
+            });
+          }
+
+          // Infanterie & Granaatgooiers
+          const squad = 1 + Math.floor(rng() * (1.7 + num * 0.35));
+          for (let s = 0; s < squad; s++) {
+            const isGren = rng() < (0.18 + num * 0.05);
+            enemies.push({
+              x: 24 + Math.floor(rng() * (W - 48)),
+              y: y - 18 - Math.floor(rng() * 34),
+              vx: 0, vy: 0,
+              type: isGren ? 'grenadier' : 'rifle',
+              hp: 1,
+              fireCd: 0.8 + rng() * 1.5,
+              anim: rng() * 4,
+              aiTimer: 0.35 + rng() * 1.0
+            });
+          }
+        }
+
+        // Plaas Super Joe aan die onderkant van die vlak
+        player.x = W / 2;
+        player.y = STAGE_LEN - 36;
+        player.dx = 0;
+        player.dy = -1;
+        player.invuln = 2.0;
+        player.deadTimer = 0;
+        camY = STAGE_LEN - H;
+
+        // Vlak 1 Helikopter-aflaai
+        if (num === 1) {
+          chopper.active = true;
+          chopper.x = W / 2;
+          chopper.y = STAGE_LEN - 46;
+          chopper.phase = 0;
+        } else {
+          chopper.active = false;
+        }
+
+        const theme = STAGE_THEMES[(num - 1) % STAGE_THEMES.length];
+        showBanner(`VLAK ${num} — ${theme.name}`, VIC['7'], 2.2);
+      }
+
+      function startSession(asDemo) {
+        sid.init();
+        sid.startMusic();
+        score = 0;
+        nextExtraLife = 10000;
+        lives = 3;
+        stageNum = 1;
+        grenadesLeft = 6;
+        newRecordFlag = false;
+        stateTimer = 0;
+        gameState = asDemo ? ST_DEMO : ST_PLAY;
+        buildStage(1);
+      }
+
+      function isBlocked(nx, ny, rad) {
+        const r = rad || 5;
+        if (nx < 8 || nx > W - 8 || ny < 98 || ny > STAGE_LEN - 10) return true;
+        for (let i = 0; i < rivers.length; i++) {
+          const rv = rivers[i];
+          if (ny + r > rv.y && ny - r < rv.y + rv.h) {
+            if (nx < rv.bridgeX + 3 || nx > rv.bridgeX + rv.bridgeW - 3) return true;
+          }
+        }
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          // Slegs die onderste stam van palmbome blokkeer beweging
+          const topY = o.type === 'tree' ? o.y + 6 : o.y;
+          if (nx + r > o.x && nx - r < o.x + o.w && ny + r > topY && ny - r < o.y + o.h) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function bulletHitsObstacle(bx, by) {
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          if (o.type === 'tree') continue; // Koeëls vlieg verby palmblare
+          if (bx >= o.x && bx <= o.x + o.w && by >= o.y && by <= o.y + o.h) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function fireM60() {
+        if (player.fireCd > 0 || player.deadTimer > 0) return false;
+        player.fireCd = 0.13;
+        const speed = 225;
+        const len = Math.hypot(player.dx, player.dy) || 1;
+        bullets.push({
+          x: player.x + (player.dx / len) * 6,
+          y: player.y + (player.dy / len) * 6,
+          vx: (player.dx / len) * speed,
+          vy: (player.dy / len) * speed,
+          fromPlayer: true,
+          life: 0.72
+        });
+        sid.sfxShoot(false);
+        return true;
+      }
+
+      function throwGrenade() {
+        if (player.grenCd > 0 || player.deadTimer > 0 || grenadesLeft <= 0) return false;
+        grenadesLeft--;
+        player.grenCd = 0.52;
+        // Oorspronklike C64-reël: granate word altyd reguit noord (boontoe) gegooi
+        const dist = 68;
+        grenades.push({
+          x: player.x,
+          y: player.y,
+          z: 0,
+          startX: player.x,
+          startY: player.y,
+          targetX: player.x,
+          targetY: Math.max(82, player.y - dist),
+          t: 0,
+          dur: 0.56,
+          fromPlayer: true
+        });
+        sid.sfxShoot(false);
+        return true;
+      }
+
+      function detonateGrenade(gx, gy, fromPlayer) {
+        explosions.push({ x: gx, y: gy, t: 0, maxT: 0.42, r: 28 });
+        shakeTimer = 0.22;
+        sid.sfxExplosion();
+
+        if (fromPlayer) {
+          for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            if (Math.hypot(e.x - gx, e.y - gy) <= 35) {
+              destroyEnemy(i);
+            }
+          }
+          for (let i = obstacles.length - 1; i >= 0; i--) {
+            const o = obstacles[i];
+            if (o.type === 'sandbag' && Math.hypot(o.x + o.w / 2 - gx, o.y + o.h / 2 - gy) <= 34) {
+              obstacles.splice(i, 1);
+            }
+          }
+        } else {
+          if (player.invuln <= 0 && player.deadTimer <= 0 && Math.hypot(player.x - gx, player.y - gy) <= 22) {
+            killPlayer();
+          }
+        }
+      }
+
+      function destroyEnemy(idx) {
+        const e = enemies[idx];
+        let pts = SCORE_SOLDIER;
+        if (e.type === 'officer') pts = SCORE_OFFICER;
+        else if (e.type === 'bike' || e.type === 'jeep') pts = SCORE_VEHICLE;
+        else if (e.type === 'grenadier') pts = SCORE_GRENADIER;
+        addScore(pts);
+        addPopup(e.x, e.y, `+${pts}`, e.type === 'officer' ? VIC['7'] : VIC['1']);
+        explosions.push({ x: e.x, y: e.y, t: 0, maxT: 0.26, r: 12 });
+        enemies.splice(idx, 1);
+      }
+
+      function killPlayer() {
+        if (player.invuln > 0 || player.deadTimer > 0) return;
+        sid.sfxDeath();
+        shakeTimer = 0.28;
+        explosions.push({ x: player.x, y: player.y, t: 0, maxT: 0.45, r: 18 });
+        player.deadTimer = 1.25;
+        bullets = bullets.filter((b) => b.fromPlayer);
+        lives--;
+      }
+
+      /* =======================================================================
+         [E] 60 FPS SIMULASIE-OPDATERING
+         ======================================================================= */
+      function update(dt) {
+        globalTime += dt;
+        if (shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
+        if (bannerTimer > 0) bannerTimer = Math.max(0, bannerTimer - dt);
+
+        // Titelskerm -> Outomatiese 15s Aantrek-Demo ná 3.2 sekondes
+        if (gameState === ST_TITLE) {
+          stateTimer += dt;
+          if (stateTimer >= 3.2) {
+            startSession(true);
+          }
+          return;
+        }
+
+        // Spel Verby -> Outomatiese 15s Aantrek-Demo ná 4.5 sekondes
+        if (gameState === ST_OVER) {
+          stateTimer += dt;
+          if (stateTimer >= 4.5) {
+            startSession(true);
+          }
+          return;
+        }
+
+        if (gameState === ST_PAUSE) return;
+
+        if (gameState === ST_CLEAR) {
+          stageClearTimer -= dt;
+          if (stageClearTimer <= 0) {
+            stageNum++;
+            grenadesLeft = Math.min(9, grenadesLeft + 3);
+            gameState = ST_PLAY;
+            buildStage(stageNum);
+          }
+          return;
+        }
+
+        // Aantrek-Demo 15-sekonde tydhouer
+        if (gameState === ST_DEMO) {
+          stateTimer += dt;
+          if (stateTimer >= ATTRACT_DURATION) {
+            gameState = ST_TITLE;
+            stateTimer = 0;
+            return;
+          }
+        }
+
+        // Helikopter vlieg skuins regs-bo weg
+        if (chopper.active) {
+          chopper.phase += dt;
+          chopper.x += 58 * dt;
+          chopper.y -= 36 * dt;
+          if (chopper.x > W + 40) chopper.active = false;
+        }
+
+        // Speler Herlewing & Beweging
+        if (player.deadTimer > 0) {
+          player.deadTimer -= dt;
+          if (player.deadTimer <= 0) {
+            if (lives <= 0) {
+              if (gameState === ST_DEMO) {
+                gameState = ST_TITLE;
+                stateTimer = 0;
+              } else {
+                newRecordFlag = recordHighScore(score);
+                gameState = ST_OVER;
+                stateTimer = 0;
+              }
+              return;
+            }
+            // Herleef effens terug van sterfplek met knipperende skild
+            player.y = Math.min(camY + H - 18, player.y + 16);
+            player.invuln = 2.4;
+          }
+        } else {
+          if (player.invuln > 0) player.invuln = Math.max(0, player.invuln - dt);
+          if (player.fireCd > 0) player.fireCd = Math.max(0, player.fireCd - dt);
+          if (player.grenCd > 0) player.grenCd = Math.max(0, player.grenCd - dt);
+
+          let mx = 0, my = 0;
+          if (gameState === ST_DEMO) {
+            // Ingeboude Demo-KI: stuur oor brûe, skiet vyande, gooi granate
+            my = -1;
+            const aheadRiver = rivers.find((r) => player.y > r.y && player.y - r.y < 75);
+            if (aheadRiver) {
+              const targetX = aheadRiver.bridgeX + aheadRiver.bridgeW / 2;
+              mx = Math.abs(player.x - targetX) > 6 ? Math.sign(targetX - player.x) : 0;
+            } else {
+              mx = Math.sin(globalTime * 2.1) > 0.35 ? 1 : Math.sin(globalTime * 2.1) < -0.35 ? -1 : 0;
+            }
+            if (Math.random() < 0.16) fireM60();
+            if (Math.random() < 0.012) throwGrenade();
+          } else {
+            if (keys.KeyW || keys.ArrowUp || touchDirs.up) my -= 1;
+            if (keys.KeyS || keys.ArrowDown || touchDirs.down) my += 1;
+            if (keys.KeyA || keys.ArrowLeft || touchDirs.left) mx -= 1;
+            if (keys.KeyD || keys.ArrowRight || touchDirs.right) mx += 1;
+
+            if (keys.KeyQ || keys.ControlLeft || keys.ControlRight || mouseFire || touchFire) {
+              fireM60();
+            }
+          }
+
+          if (mx !== 0 || my !== 0) {
+            const len = Math.hypot(mx, my);
+            const spd = 74;
+            const nx = player.x + (mx / len) * spd * dt;
+            const ny = player.y + (my / len) * spd * dt;
+
+            if (!isBlocked(nx, player.y, 5)) player.x = nx;
+            if (!isBlocked(player.x, ny, 5) && ny <= camY + H - 10 && ny >= camY + HUD_H + 10) {
+              player.y = ny;
+            }
+            player.dx = mx;
+            player.dy = my;
+            player.anim += dt * 10;
+          }
+
+          // Slegs Opwaartse Kamera-Rol (One-Way Vertical Scroll)
+          const desiredCam = player.y - H * 0.6;
+          if (desiredCam < camY && desiredCam >= 0) camY = desiredCam;
+          if (camY < 0) camY = 0;
+        }
+
+        // Vestinghek-Klimaks aan bokant van vlak
+        if (!fortressActive && camY <= 14) {
+          fortressActive = true;
+          showBanner('VESTINGHEK MAAK OOP!', VIC['2'], 2.0);
+        }
+
+        if (fortressActive) {
+          gateOpen = Math.min(1, gateOpen + dt * 0.9);
+          if (fortressSpawned < fortressTotal) {
+            fortressSpawnCd -= dt;
+            if (fortressSpawnCd <= 0) {
+              fortressSpawnCd = Math.max(0.42, 1.1 - stageNum * 0.12);
+              const isOfficer = fortressSpawned === fortressTotal - 1;
+              enemies.push({
+                x: 150 + Math.random() * 20,
+                y: 88,
+                vx: (Math.random() - 0.5) * 34,
+                vy: 42,
+                type: isOfficer ? 'officer' : (Math.random() < 0.25 ? 'grenadier' : 'rifle'),
+                hp: isOfficer ? 2 : 1,
+                fireCd: 0.75,
+                anim: 0,
+                aiTimer: 0.5
+              });
+              fortressSpawned++;
+            }
+          } else {
+            const defenders = enemies.filter((e) => e.y < 235).length;
+            if (defenders === 0 && gameState === ST_PLAY) {
+              const gBonus = grenadesLeft * 200;
+              addScore(2000 + gBonus);
+              sid.sfxBonus();
+              showBanner(`VESTING VEROORWIN! +${2000 + gBonus}`, VIC['D'], 2.8);
+              gameState = ST_CLEAR;
+              stageClearTimer = 2.9;
+              return;
+            }
+          }
+        }
+
+        // Motorfiets- & Pantser-Jeep Patrollies
+        vehicleCd -= dt;
+        if (vehicleCd <= 0 && !fortressActive) {
+          vehicleCd = Math.max(4.5, 8.2 - stageNum * 0.7);
+          const fromLeft = Math.random() > 0.5;
+          const vyPos = camY + 34 + Math.random() * 48;
+          if (!rivers.some((r) => vyPos > r.y - 12 && vyPos < r.y + r.h + 12)) {
+            const isJeep = Math.random() < 0.35;
+            enemies.push({
+              x: fromLeft ? -16 : W + 16,
+              y: vyPos,
+              vx: fromLeft ? (isJeep ? 72 : 98) : (isJeep ? -72 : -98),
+              vy: 0,
+              type: isJeep ? 'jeep' : 'bike',
+              hp: isJeep ? 3 : 2,
+              fireCd: 0.65,
+              anim: 0,
+              aiTimer: 0
+            });
+          }
+        }
+
+        // Granaatkiste (+1 000 punte + 4 granate)
+        for (let i = 0; i < crates.length; i++) {
+          const c = crates[i];
+          if (!c.collected && Math.hypot(player.x - c.x, player.y - c.y) < 13) {
+            c.collected = true;
+            grenadesLeft = Math.min(9, grenadesLeft + 4);
+            addScore(SCORE_CRATE);
+            sid.sfxBonus();
+            addPopup(c.x, c.y, '+1000', VIC['D']);
+          }
+        }
+
+        // Krygsgevangene Redding (+2 000 punte)
+        for (let i = 0; i < pows.length; i++) {
+          const p = pows[i];
+          if (!p.saved && Math.hypot(player.x - p.x, player.y - p.y) < 15) {
+            p.saved = true;
+            addScore(SCORE_POW);
+            sid.sfxBonus();
+            addPopup(p.x, p.y, '+2000', VIC['7']);
+            showBanner('KRYGSGEVANGENE GERED! +2000', VIC['7'], 1.6);
+          }
+          if (p.saved) p.x += p.runDir * 56 * dt;
+        }
+
+        // Vyand-KI Opdatering
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          if (e.y < camY - 30 || e.y > camY + H + 30) {
+            if ((e.type === 'bike' || e.type === 'jeep') && (e.x < -30 || e.x > W + 30)) {
+              enemies.splice(i, 1);
+            }
+            continue;
+          }
+
+          e.anim += dt * 8;
+          e.fireCd -= dt;
+
+          if (e.type === 'bike' || e.type === 'jeep') {
+            e.x += e.vx * dt;
+            if (e.x < -32 || e.x > W + 32) { enemies.splice(i, 1); continue; }
+          } else if (e.type !== 'bunker') {
+            e.aiTimer -= dt;
+            if (e.aiTimer <= 0) {
+              e.aiTimer = 0.55 + Math.random() * 0.85;
+              const ang = Math.atan2(player.y - e.y, player.x - e.x) + (Math.random() - 0.5) * 1.1;
+              const spd = e.type === 'officer' ? 56 : 36 + stageNum * 3;
+              e.vx = Math.cos(ang) * spd;
+              e.vy = Math.sin(ang) * spd;
+            }
+            const nx = e.x + e.vx * dt;
+            const ny = e.y + e.vy * dt;
+            if (!isBlocked(nx, e.y, 5)) e.x = nx; else e.vx = -e.vx;
+            if (!isBlocked(e.x, ny, 5)) e.y = ny; else e.vy = -e.vy;
+          }
+
+          // Vyandelike Vuur
+          if (e.fireCd <= 0 && player.deadTimer <= 0) {
+            e.fireCd = Math.max(0.7, (e.type === 'bunker' ? 1.2 : 1.7) - stageNum * 0.12) + Math.random() * 0.6;
+            const dist = Math.hypot(player.x - e.x, player.y - e.y);
+            if (dist < 175) {
+              if (e.type === 'grenadier' && dist > 46) {
+                grenades.push({
+                  x: e.x, y: e.y, z: 0, startX: e.x, startY: e.y,
+                  targetX: player.x + (Math.random() - 0.5) * 18,
+                  targetY: player.y + (Math.random() - 0.5) * 18,
+                  t: 0, dur: 0.78, fromPlayer: false
+                });
+              } else {
+                const ang = Math.atan2(player.y - e.y, player.x - e.x);
+                const bSpd = 104 + stageNum * 8;
+                bullets.push({
+                  x: e.x, y: e.y,
+                  vx: Math.cos(ang) * bSpd,
+                  vy: Math.sin(ang) * bSpd,
+                  fromPlayer: false,
+                  life: 1.5
+                });
+                sid.sfxShoot(true);
+              }
+            }
+          }
+
+          if (player.invuln <= 0 && player.deadTimer <= 0 && Math.hypot(e.x - player.x, e.y - player.y) < 10) {
+            killPlayer();
+          }
+        }
+
+        // Koeël-Opdatering (met veilige skikking-klem ná killPlayer)
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          if (!b) continue;
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          b.life -= dt;
+
+          if (b.life <= 0 || b.x < 0 || b.x > W || b.y < camY || b.y > camY + H) {
+            bullets.splice(i, 1);
+            continue;
+          }
+
+          if (bulletHitsObstacle(b.x, b.y)) {
+            impacts.push({ x: b.x, y: b.y, t: 0 });
+            bullets.splice(i, 1);
+            continue;
+          }
+
+          if (b.fromPlayer) {
+            let hit = false;
+            for (let j = enemies.length - 1; j >= 0; j--) {
+              const e = enemies[j];
+              const hitRad = e.type === 'jeep' ? 11 : e.type === 'bike' ? 9 : 7.5;
+              if (Math.hypot(b.x - e.x, b.y - e.y) < hitRad) {
+                e.hp--;
+                impacts.push({ x: b.x, y: b.y, t: 0 });
+                bullets.splice(i, 1);
+                hit = true;
+                if (e.hp <= 0) {
+                  destroyEnemy(j);
+                }
+                break;
+              }
+            }
+            if (hit) continue;
+          } else {
+            if (player.invuln <= 0 && player.deadTimer <= 0 && Math.hypot(b.x - player.x, b.y - player.y) < 6.5) {
+              bullets.splice(i, 1);
+              killPlayer();
+              // Klem indeks veilig omdat killPlayer() vyandelike koeëls uitfilter
+              i = Math.min(i, bullets.length);
+            }
+          }
+        }
+
+        // Granaat Paraboliese Boog
+        for (let i = grenades.length - 1; i >= 0; i--) {
+          const g = grenades[i];
+          g.t += dt;
+          const u = Math.min(1, g.t / g.dur);
+          g.x = g.startX + (g.targetX - g.startX) * u;
+          g.y = g.startY + (g.targetY - g.startY) * u;
+          g.z = Math.sin(u * Math.PI) * 26;
+          if (g.t >= g.dur) {
+            grenades.splice(i, 1);
+            detonateGrenade(g.targetX, g.targetY, g.fromPlayer);
+          }
+        }
+
+        // Ontploffings
+        for (let i = explosions.length - 1; i >= 0; i--) {
+          explosions[i].t += dt;
+          if (explosions[i].t >= explosions[i].maxT) explosions.splice(i, 1);
+        }
+
+        // Koeël-vonkies
+        for (let i = impacts.length - 1; i >= 0; i--) {
+          impacts[i].t += dt;
+          if (impacts[i].t >= 0.14) impacts.splice(i, 1);
+        }
+
+        // Swewende Puntetelling-opspringsels
+        for (let i = popups.length - 1; i >= 0; i--) {
+          popups[i].y -= 18 * dt;
+          popups[i].life -= dt;
+          if (popups[i].life <= 0) popups.splice(i, 1);
+        }
+      }
+
+      /* =======================================================================
+         [F] OUTENTIEKE 320x200 VIC-II TEKEN-ENJIN (DIEPTELAAG-VOLGORDE)
+         ======================================================================= */
+      function drawSpriteCentered(spr, x, y, flipX) {
+        const dx = Math.round(x - spr.width / 2);
+        const dy = Math.round(y - spr.height / 2);
+        if (!flipX) {
+          ctx.drawImage(spr, dx, dy);
+        } else {
+          ctx.save();
+          ctx.translate(Math.round(x), dy);
+          ctx.scale(-1, 1);
+          ctx.drawImage(spr, -Math.round(spr.width / 2), 0);
+          ctx.restore();
+        }
+      }
+
+      function renderWorld() {
+        const theme = STAGE_THEMES[(stageNum - 1) % STAGE_THEMES.length];
+
+        ctx.save();
+        if (shakeTimer > 0) {
+          const sx = Math.round((Math.random() - 0.5) * 4);
+          const sy = Math.round((Math.random() - 0.5) * 4);
+          ctx.translate(sx, sy);
+        }
+
+        // 1. Grondtekstuur en kronkelende grondpad
+        ctx.fillStyle = theme.bg;
+        ctx.fillRect(0, HUD_H, W, H - HUD_H);
+
+        const startTileY = Math.floor(camY / 16) * 16;
+        ctx.fillStyle = theme.alt;
+        for (let wy = startTileY; wy < camY + H + 16; wy += 16) {
+          const sy = Math.round(wy - camY);
+          const offset = ((wy / 16) % 2) * 16;
+          for (let x = offset; x < W; x += 32) {
+            ctx.fillRect(x, sy, 8, 4);
+          }
+        }
+
+        ctx.fillStyle = theme.road;
+        for (let wy = startTileY; wy < camY + H + 16; wy += 8) {
+          if (wy < 96) continue;
+          const sy = Math.round(wy - camY);
+          const roadX = Math.round(W / 2 - 22 + Math.sin(wy * 0.012) * 30);
+          ctx.fillRect(roadX, sy, 44, 8);
+        }
+
+        // 2. Riviere (met waterglinstering) en houtbrûe
+        for (let i = 0; i < rivers.length; i++) {
+          const rv = rivers[i];
+          const sy = Math.round(rv.y - camY);
+          if (sy + rv.h < HUD_H || sy > H) continue;
+          ctx.fillStyle = theme.water;
+          ctx.fillRect(0, sy, W, rv.h);
+
+          ctx.fillStyle = VIC['3'];
+          const waveShift = Math.floor(globalTime * 18) % 16;
+          for (let rx = -16 + waveShift; rx < W; rx += 20) {
+            ctx.fillRect(rx, sy + 6, 8, 2);
+            ctx.fillRect(rx + 8, sy + 18, 9, 2);
+            ctx.fillRect(rx + 3, sy + 28, 7, 2);
+          }
+
+          ctx.fillStyle = VIC['9'];
+          ctx.fillRect(rv.bridgeX, sy - 2, rv.bridgeW, rv.h + 4);
+          ctx.fillStyle = VIC['8'];
+          for (let py = sy; py < sy + rv.h; py += 5) {
+            ctx.fillRect(rv.bridgeX + 2, py, rv.bridgeW - 4, 3);
+          }
+          ctx.fillStyle = VIC['7'];
+          ctx.fillRect(rv.bridgeX, sy - 2, 2, rv.h + 4);
+          ctx.fillRect(rv.bridgeX + rv.bridgeW - 2, sy - 2, 2, rv.h + 4);
+        }
+
+        // 3. Vestingmure en skuifhek
+        if (camY < 115) {
+          const fy = Math.round(-camY);
+          ctx.fillStyle = VIC['B'];
+          ctx.fillRect(0, fy, W, 74);
+
+          ctx.fillStyle = VIC['0'];
+          ctx.fillRect(128, fy + 48, 64, 50);
+
+          const doorW = Math.round(32 * (1 - gateOpen));
+          if (doorW > 0) {
+            ctx.fillStyle = VIC['2'];
+            ctx.fillRect(128, fy + 74, doorW, 24);
+            ctx.fillRect(192 - doorW, fy + 74, doorW, 24);
+            ctx.fillStyle = VIC['7'];
+            ctx.fillRect(128 + doorW - 2, fy + 76, 2, 20);
+            ctx.fillRect(192 - doorW, fy + 76, 2, 20);
+          }
+
+          ctx.fillStyle = theme.wall;
+          for (let x = 0; x < W; x += 16) {
+            ctx.fillRect(x, fy + 64, 12, 10);
+          }
+        }
+
+        // 4. Grondhindernisse: mure, rotse, sandsakke en palmboomstamme
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          const sy = Math.round(o.y - camY);
+          if (sy + o.h < HUD_H - 12 || sy > H + 12) continue;
+
+          if (o.type === 'wall') {
+            ctx.fillStyle = theme.wall;
+            ctx.fillRect(o.x, sy, o.w, o.h);
+            ctx.fillStyle = VIC['B'];
+            for (let bx = o.x; bx < o.x + o.w; bx += 12) {
+              ctx.fillRect(bx, sy + 8, 10, 2);
+              ctx.fillRect(bx + 6, sy + 18, 10, 2);
+            }
+          } else if (o.type === 'rock') {
+            ctx.drawImage(SPRITES.rock, Math.round(o.x), sy);
+          } else if (o.type === 'sandbag') {
+            ctx.drawImage(SPRITES.sandbag, Math.round(o.x), sy);
+          } else if (o.type === 'tree') {
+            ctx.drawImage(SPRITES.treeTrunk, Math.round(o.x), sy + 8);
+          }
+        }
+
+        // 5. Versamelstukke (flitsende granaatkiste) en krygsgevangenes
+        const crateFrame = Math.floor(globalTime * 8) % 2;
+        for (let i = 0; i < crates.length; i++) {
+          const c = crates[i];
+          if (c.collected) continue;
+          const sy = Math.round(c.y - camY);
+          if (sy < HUD_H - 10 || sy > H + 10) continue;
+          drawSpriteCentered(SPRITES.crate[crateFrame], c.x, sy, false);
+        }
+
+        for (let i = 0; i < pows.length; i++) {
+          const p = pows[i];
+          const sy = Math.round(p.y - camY);
+          if (sy < HUD_H - 12 || sy > H + 12) continue;
+          drawSpriteCentered(SPRITES.pow, p.x, sy, p.saved && p.runDir < 0);
+        }
+
+        // 6. Vyande en die Speler
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          const sy = Math.round(e.y - camY);
+          if (sy < HUD_H - 16 || sy > H + 16) continue;
+          const f = Math.floor(e.anim) % 2;
+          if (e.type === 'bike') {
+            drawSpriteCentered(SPRITES.bike, e.x, sy, e.vx < 0);
+          } else if (e.type === 'jeep') {
+            drawSpriteCentered(SPRITES.jeep, e.x, sy, e.vx < 0);
+          } else if (e.type === 'officer') {
+            drawSpriteCentered(SPRITES.enemyOfficer[f], e.x, sy, e.vx < 0);
+          } else if (e.type === 'grenadier') {
+            drawSpriteCentered(SPRITES.enemyGren[f], e.x, sy, e.vx < 0);
+          } else {
+            drawSpriteCentered(SPRITES.enemyRifle[f], e.x, sy, e.vx < 0);
+          }
+        }
+
+        if (player.deadTimer <= 0) {
+          const blink = player.invuln > 0 && Math.floor(globalTime * 18) % 2 === 0;
+          if (!blink) {
+            const py = Math.round(player.y - camY);
+            const pf = Math.floor(player.anim) % 2;
+            const isSide = Math.abs(player.dx) > 0 && player.dy === 0;
+            const spr = isSide ? SPRITES.joeSide[pf] : SPRITES.joeUp[pf];
+            drawSpriteCentered(spr, player.x, py, isSide && player.dx < 0);
+          }
+        }
+
+        // 7. Palmboom-blaredakke (bo-oor karakters geteken)
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          if (o.type !== 'tree') continue;
+          const sy = Math.round(o.y - camY);
+          if (sy + 14 < HUD_H || sy > H + 14) continue;
+          ctx.drawImage(SPRITES.treeCanopy, Math.round(o.x), sy);
+        }
+
+        // 8. Koeëls, boogvormende granate, ontploffings, vonke, helikopter & opspringsels
+        for (let i = 0; i < bullets.length; i++) {
+          const b = bullets[i];
+          const sy = Math.round(b.y - camY);
+          ctx.fillStyle = b.fromPlayer ? VIC['7'] : VIC['1'];
+          ctx.fillRect(Math.round(b.x) - 1, sy - 1, 2, 3);
+        }
+
+        for (let i = 0; i < grenades.length; i++) {
+          const g = grenades[i];
+          const sy = Math.round(g.y - camY);
+          ctx.fillStyle = VIC['0'];
+          ctx.fillRect(Math.round(g.x) - 2, sy, 4, 2);
+          ctx.fillStyle = g.fromPlayer ? VIC['1'] : VIC['2'];
+          ctx.fillRect(Math.round(g.x) - 2, Math.round(sy - g.z) - 2, 4, 4);
+          ctx.fillStyle = VIC['7'];
+          ctx.fillRect(Math.round(g.x) - 1, Math.round(sy - g.z) - 1, 2, 2);
+        }
+
+        for (let i = 0; i < explosions.length; i++) {
+          const ex = explosions[i];
+          const sy = Math.round(ex.y - camY);
+          const p = ex.t / ex.maxT;
+          const rad = Math.max(2, Math.round(ex.r * Math.sin(p * Math.PI)));
+          ctx.fillStyle = p < 0.25 ? VIC['1'] : p < 0.5 ? VIC['7'] : p < 0.75 ? VIC['8'] : VIC['2'];
+          ctx.beginPath();
+          ctx.arc(Math.round(ex.x), sy, rad, 0, Math.PI * 2);
+          ctx.fill();
+          if (p < 0.6) {
+            ctx.fillStyle = VIC['1'];
+            ctx.fillRect(Math.round(ex.x) - 2, sy - 2, 4, 4);
+          }
+        }
+
+        for (let i = 0; i < impacts.length; i++) {
+          const im = impacts[i];
+          const sy = Math.round(im.y - camY);
+          ctx.fillStyle = VIC['1'];
+          ctx.fillRect(Math.round(im.x) - 1, sy - 1, 3, 3);
+        }
+
+        if (chopper.active) {
+          const cy = Math.round(chopper.y - camY);
+          drawSpriteCentered(SPRITES.chopper, chopper.x, cy, false);
+          const bladeW = Math.floor(globalTime * 40) % 2 === 0 ? 34 : 18;
+          ctx.fillStyle = VIC['F'];
+          ctx.fillRect(Math.round(chopper.x - bladeW / 2), cy - 6, bladeW, 2);
+        }
+
+        ctx.font = 'bold 8px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        for (let i = 0; i < popups.length; i++) {
+          const p = popups[i];
+          const sy = Math.round(p.y - camY);
+          ctx.fillStyle = VIC['0'];
+          ctx.fillText(p.text, Math.round(p.x) + 1, sy + 1);
+          ctx.fillStyle = p.color;
+          ctx.fillText(p.text, Math.round(p.x), sy);
+        }
+
+        ctx.restore();
+      }
+
+      function renderHud() {
+        // 9. Vaste 18px swart statusbalk met 1px ligblou onderste lyn
+        ctx.fillStyle = VIC['0'];
+        ctx.fillRect(0, 0, W, HUD_H);
+        ctx.fillStyle = VIC['E'];
+        ctx.fillRect(0, HUD_H - 1, W, 1);
+
+        ctx.font = 'bold 8px "Courier New", monospace';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+
+        // 1UP + Telling (6 syfers)
+        ctx.fillStyle = VIC['7'];
+        ctx.fillText('1UP', 4, 5);
+        ctx.fillStyle = VIC['1'];
+        ctx.fillText(String(score).padStart(6, '0'), 22, 5);
+
+        // HI + Beste telling (6 syfers)
+        const topHi = Math.max(score, highScores[0] ? highScores[0].score : 0);
+        ctx.fillStyle = VIC['3'];
+        ctx.fillText('HI', 64, 5);
+        ctx.fillStyle = VIC['1'];
+        ctx.fillText(String(topHi).padStart(6, '0'), 78, 5);
+
+        // VLAK
+        ctx.fillStyle = VIC['D'];
+        ctx.fillText(`VLAK:${stageNum}`, 130, 5);
+
+        // GRANAAT
+        ctx.fillStyle = VIC['8'];
+        ctx.fillText(`GR:${grenadesLeft}`, 186, 5);
+
+        // LEWENS (regs-belyn vir skoon uitleg)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = VIC['A'];
+        ctx.fillText(`LEWENS:${Math.max(0, lives)}`, W - 4, 5);
+      }
+
+      function renderOverlays() {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Gebeurtenis-banier tydens spel
+        if (bannerTimer > 0 && (gameState === ST_PLAY || gameState === ST_CLEAR)) {
+          ctx.fillStyle = 'rgba(0,0,0,0.8)';
+          ctx.fillRect(20, 86, W - 40, 22);
+          ctx.strokeStyle = bannerColor;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(20.5, 86.5, W - 41, 21);
+          ctx.font = 'bold 9px "Courier New", monospace';
+          ctx.fillStyle = bannerColor;
+          ctx.fillText(bannerText, W / 2, 97);
+        }
+
+        // Aantrek-Demo Banier
+        if (gameState === ST_DEMO) {
+          const rem = Math.max(0, Math.ceil(ATTRACT_DURATION - stateTimer));
+          ctx.fillStyle = 'rgba(16, 12, 40, 0.86)';
+          ctx.fillRect(10, H - 24, W - 20, 18);
+          ctx.strokeStyle = VIC['3'];
+          ctx.strokeRect(10.5, H - 23.5, W - 21, 17);
+          ctx.font = 'bold 8px "Courier New", monospace';
+          ctx.fillStyle = Math.floor(globalTime * 4) % 2 === 0 ? VIC['7'] : VIC['1'];
+          ctx.fillText(`DEMO (${rem}s) — DRUK ENIGE SLEUTEL OM TE SPEEL`, W / 2, H - 15);
+        }
+
+        // Titelskerm
+        if (gameState === ST_TITLE) {
+          ctx.fillStyle = VIC['6'];
+          ctx.fillRect(0, HUD_H, W, H - HUD_H);
+          ctx.fillStyle = '#1b1440';
+          ctx.fillRect(10, HUD_H + 8, W - 20, H - HUD_H - 16);
+
+          ctx.strokeStyle = VIC['E'];
+          ctx.lineWidth = 2;
+          ctx.strokeRect(10, HUD_H + 8, W - 20, H - HUD_H - 16);
+
+          ctx.font = 'bold 20px "Courier New", monospace';
+          ctx.fillStyle = VIC['0'];
+          ctx.fillText('COMMANDO 64', W / 2 + 2, 45);
+          ctx.fillStyle = VIC['7'];
+          ctx.fillText('COMMANDO 64', W / 2, 43);
+
+          ctx.font = 'bold 8px "Courier New", monospace';
+          ctx.fillStyle = VIC['3'];
+          ctx.fillText('1985 COMMODORE 64 ARKADE • AFRIKAANS', W / 2, 60);
+
+          // Top-5 Rekordtabel
+          ctx.fillStyle = VIC['D'];
+          ctx.fillText('— TOP-5 REKORDTABEL —', W / 2, 78);
+          ctx.font = 'bold 8px "Courier New", monospace';
+          for (let i = 0; i < highScores.length; i++) {
+            const h = highScores[i];
+            ctx.fillStyle = i === 0 ? VIC['7'] : VIC['1'];
+            ctx.fillText(`${i + 1}. ${h.name} ........ ${String(h.score).padStart(6, '0')}`, W / 2, 92 + i * 11);
+          }
+
+          // Knipperende begin-boodskap
+          if (Math.floor(globalTime * 3) % 2 === 0) {
+            ctx.font = 'bold 9px "Courier New", monospace';
+            ctx.fillStyle = VIC['D'];
+            ctx.fillText('DRUK SPASIE / KLIK OM TE BEGIN', W / 2, 162);
+          }
+
+          const toDemo = Math.max(1, Math.ceil(3.2 - stateTimer));
+          ctx.font = 'bold 7px "Courier New", monospace';
+          ctx.fillStyle = VIC['F'];
+          ctx.fillText(`AANTREK-DEMO OOR ${toDemo}s...`, W / 2, 178);
+        }
+
+        // Pouse-Oortreksel
+        if (gameState === ST_PAUSE) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+          ctx.fillRect(0, HUD_H, W, H - HUD_H);
+          ctx.font = 'bold 16px "Courier New", monospace';
+          ctx.fillStyle = VIC['7'];
+          ctx.fillText('GEPOUSEER', W / 2, 96);
+          ctx.font = 'bold 9px "Courier New", monospace';
+          ctx.fillStyle = VIC['1'];
+          ctx.fillText('DRUK P OF ESC OM TE HERVAT', W / 2, 116);
+        }
+
+        // Spel Verby-Oortreksel
+        if (gameState === ST_OVER) {
+          ctx.fillStyle = 'rgba(16, 8, 24, 0.88)';
+          ctx.fillRect(24, 44, W - 48, 118);
+          ctx.strokeStyle = VIC['2'];
+          ctx.lineWidth = 2;
+          ctx.strokeRect(24, 44, W - 48, 118);
+
+          ctx.font = 'bold 18px "Courier New", monospace';
+          ctx.fillStyle = VIC['2'];
+          ctx.fillText('SPEL VERBY', W / 2, 68);
+
+          ctx.font = 'bold 9px "Courier New", monospace';
+          ctx.fillStyle = VIC['1'];
+          ctx.fillText(`FINALE TELLING: ${score}`, W / 2, 92);
+          ctx.fillStyle = VIC['3'];
+          ctx.fillText(`VLAK BEREIK: ${stageNum}`, W / 2, 108);
+
+          if (newRecordFlag) {
+            ctx.fillStyle = VIC['7'];
+            ctx.fillText('★ NUWE REKORD! ★', W / 2, 124);
+          }
+
+          ctx.font = 'bold 8px "Courier New", monospace';
+          ctx.fillStyle = VIC['D'];
+          ctx.fillText('DRUK SPASIE / KLIK OM WEER TE SPEEL', W / 2, 146);
+        }
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, W, H);
+        if (gameState !== ST_TITLE) {
+          renderWorld();
+        }
+        renderHud();
+        renderOverlays();
+      }
+
+      /* =======================================================================
+         [G] INVOERHANTERING (SLEUTELBORD, MUIS, AANRAAKSKERM & KOPBALK)
+         ======================================================================= */
+      function togglePause() {
+        if (gameState === ST_PLAY) {
+          prevState = ST_PLAY;
+          gameState = ST_PAUSE;
+        } else if (gameState === ST_PAUSE) {
+          gameState = prevState;
+        }
+      }
+
+      function toggleSid() {
+        sid.enabled = !sid.enabled;
+        const btn = document.getElementById('btnSid');
+        btn.textContent = sid.enabled ? 'SID: AAN' : 'SID: AF';
+        btn.classList.toggle('active', sid.enabled);
+        if (sid.enabled) {
+          sid.init();
+          sid.startMusic();
+        }
+      }
+
+      function toggleCrt() {
+        crtOn = !crtOn;
+        document.getElementById('crtOverlay').classList.toggle('off', !crtOn);
+        const btn = document.getElementById('btnCrt');
+        btn.textContent = crtOn ? 'CRT: AAN' : 'CRT: AF';
+        btn.classList.toggle('active', crtOn);
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+          e.preventDefault();
+        }
+        if ((e.ctrlKey || e.metaKey) && ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ'].includes(e.code)) {
+          e.preventDefault();
+        }
+
+        if (e.code === 'KeyM') { toggleSid(); return; }
+        if (e.code === 'KeyC') { toggleCrt(); return; }
+        if (e.code === 'KeyT') { toggleTddModal(); return; }
+        if (e.code === 'KeyP' || e.code === 'Escape') {
+          if (document.getElementById('tddModal').classList.contains('open')) {
+            document.getElementById('tddModal').classList.remove('open');
+            return;
+          }
+          togglePause();
+          return;
+        }
+
+        // Onderbreek Titelskerm, Aantrek-Demo of Spel Verby onmiddellik
+        if (gameState === ST_TITLE || gameState === ST_DEMO || gameState === ST_OVER) {
+          startSession(false);
+          return;
+        }
+
+        keys[e.code] = true;
+        if (e.code === 'Space' && gameState === ST_PLAY) {
+          throwGrenade();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        keys[e.code] = false;
+      });
+
+      window.addEventListener('blur', () => {
+        Object.keys(keys).forEach((k) => { keys[k] = false; });
+        mouseFire = false;
+        touchFire = false;
+        touchDirs.up = touchDirs.down = touchDirs.left = touchDirs.right = false;
+      });
+
+      // Muisbeheer op die doek
+      canvas.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (gameState === ST_TITLE || gameState === ST_DEMO || gameState === ST_OVER) {
+          startSession(false);
+          return;
+        }
+        if (e.button === 0) {
+          mouseFire = true;
+          if (gameState === ST_PLAY) fireM60();
+        } else if (e.button === 2) {
+          if (gameState === ST_PLAY) throwGrenade();
+        }
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 0) mouseFire = false;
+      });
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // Kopbalk-knoppies (met e.target.blur() sodat Spasiebalk nie knoppies heraktiveer nie)
+      document.getElementById('btnStart').addEventListener('click', (e) => {
+        e.target.blur();
+        startSession(false);
+      });
+      document.getElementById('btnDemo').addEventListener('click', (e) => {
+        e.target.blur();
+        startSession(true);
+      });
+      document.getElementById('btnPause').addEventListener('click', (e) => {
+        e.target.blur();
+        togglePause();
+      });
+      document.getElementById('btnSid').addEventListener('click', (e) => {
+        e.target.blur();
+        toggleSid();
+      });
+      document.getElementById('btnCrt').addEventListener('click', (e) => {
+        e.target.blur();
+        toggleCrt();
+      });
+      document.getElementById('btnTdd').addEventListener('click', (e) => {
+        e.target.blur();
+        toggleTddModal();
+      });
+      document.getElementById('btnCloseTdd').addEventListener('click', (e) => {
+        e.target.blur();
+        document.getElementById('tddModal').classList.remove('open');
+      });
+
+      // Aanraakbeheer-koppeling
+      document.querySelectorAll('.t-btn[data-dir]').forEach((btn) => {
+        const dir = btn.getAttribute('data-dir');
+        const setDir = (val) => (ev) => {
+          ev.preventDefault();
+          if (val && (gameState === ST_TITLE || gameState === ST_DEMO || gameState === ST_OVER)) {
+            startSession(false);
+          }
+          touchDirs[dir] = val;
+        };
+        btn.addEventListener('touchstart', setDir(true), { passive: false });
+        btn.addEventListener('touchend', setDir(false), { passive: false });
+        btn.addEventListener('touchcancel', setDir(false), { passive: false });
+      });
+
+      const tFireBtn = document.getElementById('tFire');
+      tFireBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState !== ST_PLAY) { startSession(false); return; }
+        touchFire = true;
+        fireM60();
+      }, { passive: false });
+      tFireBtn.addEventListener('touchend', (e) => { e.preventDefault(); touchFire = false; }, { passive: false });
+
+      const tGrenBtn = document.getElementById('tGren');
+      tGrenBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameState === ST_PLAY) throwGrenade();
+      }, { passive: false });
+
+      /* =======================================================================
+         [H] INGEBOUDE 7-KONTROLE TDD-VERIFIKASIEPAKKET (ROOI -> GROEN)
+         ======================================================================= */
+      function runTddSuite() {
+        const results = [];
+        function assert(name, cond, detail) {
+          results.push({ name, pass: Boolean(cond), detail: detail || '' });
+        }
+
+        // 1. VIC-II Resolusie & 16-Kleur Palet
+        assert('VIC-II 320×200 Doek & 16-Kleur Palet',
+          canvas.width === 320 && canvas.height === 200 && Object.keys(VIC).length === 16,
+          `${canvas.width}×${canvas.height}, ${Object.keys(VIC).length} kleure`);
+
+        // 2. Sprite-Rasterisering
+        const spriteOk = SPRITES.joeUp[0].width === 12 && SPRITES.enemyRifle[0].width === 12 &&
+                         SPRITES.chopper.width === 30 && SPRITES.jeep.width === 16;
+        assert('Piksel-Sprites Korrek Gerasteriseer', spriteOk, 'Joe, Vyande, Helikopter, Jeep');
+
+        // 3. Deterministiese Vlakbouer
+        buildStage(1);
+        assert('Vlakbouer (2 Riviere, Brûe, Vesting & Vyande)',
+          rivers.length === 2 && enemies.length > 5 && obstacles.some((o) => o.type === 'wall'),
+          `Riviere:${rivers.length}, Vyande:${enemies.length}, Hindernisse:${obstacles.length}`);
+
+        // 4. Koeël-lus Veiligheid by Speler-treffer
+        player.fireCd = 0;
+        player.invuln = 0;
+        player.deadTimer = 0;
+        const fired = fireM60();
+        bullets.push({ x: player.x, y: player.y, vx: 0, vy: 0, fromPlayer: false, life: 1 });
+        let loopClean = true;
+        try {
+          gameState = ST_PLAY;
+          update(0.016);
+        } catch (err) {
+          loopClean = false;
+        }
+        assert('Koeël-lus Veiligheid (Skikking-klem ná treffer)', fired && loopClean, 'Geen TypeError of grensfout');
+
+        // 5. Granaat-meganika
+        player.deadTimer = 0;
+        player.grenCd = 0;
+        grenadesLeft = 6;
+        const gThrown = throwGrenade();
+        assert('Granaat-meganika (Voorraad -1 & Entiteit geskep)', gThrown && grenadesLeft === 5 && grenades.length > 0, `Oor:${grenadesLeft}`);
+
+        // 6. Puntetelling & 1UP by 10 000 punte
+        score = 0;
+        lives = 3;
+        nextExtraLife = 10000;
+        addScore(10000);
+        assert('Puntetelling & 1UP Ekstra Lewe by 10 000', score === 10000 && lives === 4, `Telling:${score}, Lewens:${lives}`);
+
+        // 7. Aantrek-Demo Tydsduur
+        assert('Aantrek-Demo Tydskonstante (15.0s)', ATTRACT_DURATION === 15.0, `${ATTRACT_DURATION.toFixed(1)}s`);
+
+        // Herstel skoon Titelskerm-toestand ná TDD-kontroles
+        score = 0;
+        lives = 3;
+        nextExtraLife = 10000;
+        grenadesLeft = 6;
+        gameState = ST_TITLE;
+        stateTimer = 0;
+        buildStage(1);
+
+        const passed = results.filter((r) => r.pass).length;
+        const btn = document.getElementById('btnTdd');
+        btn.textContent = `TDD: ${passed}/${results.length} ${passed === results.length ? 'PASS' : 'FAIL'}`;
+        btn.classList.toggle('pass', passed === results.length);
+
+        const body = document.getElementById('tddBody');
+        body.innerHTML = results.map((r) => `
+          <div class="tdd-row">
+            <span>${r.name} <small style="color:#9f9f9f">(${r.detail})</small></span>
+            <span class="${r.pass ? 'tdd-pass' : 'tdd-fail'}">${r.pass ? 'GESLAAG' : 'MISLUK'}</span>
+          </div>
+        `).join('');
+
+        window.COMMANDO_TDD = { passed, total: results.length, results };
+        return window.COMMANDO_TDD;
+      }
+
+      function toggleTddModal() {
+        document.getElementById('tddModal').classList.toggle('open');
+      }
+
+      /* =======================================================================
+         [I] HOOF-ANIMASIELUS & OPSTART
+         ======================================================================= */
+      let lastTs = 0;
+      function loop(ts) {
+        if (!lastTs) lastTs = ts;
+        const dt = Math.min(0.05, Math.max(0, (ts - lastTs) / 1000));
+        lastTs = ts;
+        update(dt);
+        render();
+        requestAnimationFrame(loop);
+      }
+
+      function boot() {
+        runTddSuite();
+        requestAnimationFrame(loop);
+      }
+
+      if (document.readyState === 'complete') {
+        boot();
+      } else {
+        window.addEventListener('load', boot);
+      }
+    })();
+  </script>
+</body>
+</html>
